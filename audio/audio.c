@@ -52,7 +52,6 @@ int main(int argc, char** argv) {
     int audioDevicesCount = 0;
     int defaultDeviceIndex = -1;
     AudioDevice audioDevices[NUMBER_OF_DEVICES];
-    AudioDevice* defaultDevice = NULL;
 
     char* target = NULL;
     char action[CLI_ACTION_MAX_LENGHT] = CLI_ACTION_HELP;
@@ -109,7 +108,6 @@ int main(int argc, char** argv) {
 
     // query the pulseaudio state
     getPulseaudioState(audioDevices, &audioDevicesCount, &defaultDeviceIndex);
-    defaultDevice = &audioDevices[defaultDeviceIndex];
     
     // execute the desired action
     if (!strcmp(action, CLI_ACTION_HELP)) {
@@ -146,16 +144,34 @@ int getPulseaudioState(AudioDevice* audioDevices, int* audioDevicesCount, int* d
     char state[COMMAND_OUTPUT_MAX_LENGHT] = "\0";
     runCommand("pacmd list-sinks", state);
 
+    // reads the command output line by line
     char* line = state;
     char* nextLine = line;
     while ((line = strtok_r(nextLine, "\n", &nextLine))) {
+        // we will need to split the line, this array will have pointers to where the text is
         char* values[STRING_SPLIT_SIZE];
+        int valuesCount = 0;
 
-        // index of the default device
+        // a line startnig with '  * index:' gives the index of the default device
         if (!strncmp("  * index:", line, strlen("  * index:"))) {
+            // splits the line on space characters (up to STRING_SPLIT_SIZE values)
+            char* value = line;
+            char* nextValue = value;
+            while ((value = strtok_r(nextValue, " ", &nextValue)) && (valuesCount < STRING_SPLIT_SIZE)) {
+                values[valuesCount] = value;
+                valuesCount++;
+            }
+            
+            // create a new audio device and store its index as the default one
+            audioDevices[*audioDevicesCount].deviceIndex = atoi(values[2]);
+            audioDevices[*audioDevicesCount].deviceIsDefault = 1;
+            *defaultDeviceIndex = *audioDevicesCount;
             *audioDevicesCount = *audioDevicesCount + 1;
+        }
 
-            int valuesCount = 0;
+        // a line startnig with '  * index:' gives the index of some non-default device
+        else if (!strncmp("    index:", line, strlen("    index:"))) {
+            // splits the line on space characters (up to STRING_SPLIT_SIZE values)
             char* value = line;
             char* nextValue = value;
             while ((value = strtok_r(nextValue, " ", &nextValue)) && (valuesCount < STRING_SPLIT_SIZE)) {
@@ -163,34 +179,24 @@ int getPulseaudioState(AudioDevice* audioDevices, int* audioDevicesCount, int* d
                 valuesCount++;
             }
 
-            audioDevices[*audioDevicesCount - 1].deviceIndex = atoi(values[2]);
-            audioDevices[*audioDevicesCount - 1].deviceIsDefault = 1;
-            *defaultDeviceIndex = *audioDevicesCount - 1;
+            // create a new audio device
+            audioDevices[*audioDevicesCount].deviceIndex = atoi(values[1]);
+            audioDevices[*audioDevicesCount].deviceIsDefault = 0;
+            *audioDevicesCount = *audioDevicesCount + 1;
         }
 
-        // index of some non-default device
-        if (!strncmp("    index:", line, strlen("    index:"))) {
-            *audioDevicesCount = *audioDevicesCount + 1;
-
-            int valuesCount = 0;
-            char* value = line;
-            char* nextValue = value;
-            while ((value = strtok_r(nextValue, " ", &nextValue)) && (valuesCount < STRING_SPLIT_SIZE)) {
-                values[valuesCount] = value;
-                valuesCount++;
+        // a line starting with '	volume:' gives the volume of the device being read
+        else if (!strncmp("	volume:", line, strlen("	volume:"))) {
+            // ignore line if no audio device was found yet
+            if (*audioDevicesCount < 1) {
+                continue;
             }
 
-            audioDevices[*audioDevicesCount - 1].deviceIndex = atoi(values[1]);
-            audioDevices[*audioDevicesCount - 1].deviceIsDefault = 0;
-        }
-
-        // volume of the device being read
-        if (!strncmp("	volume:", line, strlen("	volume:"))) {
-            int valuesCount = 0;
+            // splits the line on space characters (up to STRING_SPLIT_SIZE values)
             char* value = line;
             char* nextValue = value;
             while ((value = strtok_r(nextValue, " ", &nextValue)) && (valuesCount < STRING_SPLIT_SIZE)) {
-                // remove the percentage symbol from the correct output
+                // remove the percentage symbol
                 if ((valuesCount == 4) || (valuesCount == 11)) {
                     char* noPercentage = value;
                     char* nextNoPercentage = noPercentage;
@@ -201,19 +207,25 @@ int getPulseaudioState(AudioDevice* audioDevices, int* audioDevicesCount, int* d
                 values[valuesCount] = value;
                 valuesCount++;
             }
-
+            
+            // sets the volume of the current device to max of left and right volumes
             int leftVolume = atoi(values[4]);
             int rightVolume = atoi(values[11]);
             audioDevices[*audioDevicesCount - 1].deviceVolume = (leftVolume > rightVolume) ? leftVolume : rightVolume;
         }
 
-        // name of the device being read
-        if (!strncmp("		device.product.name =", line, strlen("		device.product.name ="))) {
-            int valuesCount = 0;
+        // a line starting with '		device.product.name =' gives the name of the device being read
+        else if (!strncmp("		device.product.name =", line, strlen("		device.product.name ="))) {
+            // ignore line if no audio device was found yet
+            if (*audioDevicesCount < 1) {
+                continue;
+            }
+
+            // splits the line on equal signs (up to STRING_SPLIT_SIZE values)
             char* value = line;
             char* nextValue = value;
             while ((value = strtok_r(nextValue, "=", &nextValue)) && (valuesCount < STRING_SPLIT_SIZE)) {
-                // remove quotes from the correct output
+                // remove quotes
                 if (!strncmp(" \"", value, strlen(" \""))) {
                     char* noQuotes = value;
                     char* nextNoQuotes = noQuotes;
@@ -228,13 +240,18 @@ int getPulseaudioState(AudioDevice* audioDevices, int* audioDevicesCount, int* d
                 values[valuesCount] = value;
                 valuesCount++;
             }
-
+            
+            // sets the name of the current device
             strcpy(audioDevices[*audioDevicesCount - 1].deviceName, values[1]);
         }
 
-        // muted state of the device being read
-        if (!strncmp("	muted:", line, strlen("	muted:"))) {
-            int valuesCount = 0;
+        // a line starting with '	muted:' gives the muted state of the device being read
+        else if (!strncmp("	muted:", line, strlen("	muted:"))) {
+            // ignore line if no audio device was found yet
+            if (*audioDevicesCount < 1) {
+                continue;
+            }
+
             char* value = line;
             char* nextValue = value;
             while ((value = strtok_r(nextValue, ":", &nextValue)) && (valuesCount < 16)) {
@@ -242,10 +259,11 @@ int getPulseaudioState(AudioDevice* audioDevices, int* audioDevicesCount, int* d
                 valuesCount++;
             }
 
+            // sets the muted state of the current device
             audioDevices[*audioDevicesCount - 1].deviceIsMuted = !strcmp(values[1], " yes");
         }
 
-        // uncomment for debugging
+        // debug
         // for (int i = 0; i < valuesCount; i++) {
         //     printf("[%d] '%s' ", i, values[i]);
         //     printf("\n");
