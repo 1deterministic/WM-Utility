@@ -93,7 +93,9 @@ int main(int argc, char** argv) {
 
 // shows the help message
 int help(void) {
-    printf("daemon - CLI tool to ...\n");
+    printf("daemon - CLI tool to make your polybar modules more versatile\n");
+    printf("  daemon %s %s pipe-name $s config-file: create a receiver that will listen on pipe-name and behave as defined in config-file\n", CLI_ACTION_RECEIVE, CLI_VALUE_PIPE_NAME, CLI_VALUE_CONFIG_FILE);
+    printf("  daemon %s %s pipe-name %s message: sends message to the daemon listening in pipe-name\n", CLI_ACTION_SEND, CLI_VALUE_PIPE_NAME, CLI_VALUE_MESSAGE);
     fflush(stdout);
 
     return 0;
