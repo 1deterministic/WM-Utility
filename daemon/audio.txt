@@ -1,0 +1,42 @@
+# you can use a config like this to control pulseaudio from polybar using the audio module of this repository
+#
+# [module/audio]
+# type = custom/script
+# tail = true
+# ; this will create a receiver named audio
+# exec = daemon --receive --pipe-name audio --config-file /path/to/audio.txt
+# 
+# ; these will send commands to the receiver, the receiver is the one that actually runs the desired commands
+# click-left = daemon --send --pipe-name audio --message mouse-left
+# click-middle = daemon --send --pipe-name audio --message mouse-middle
+# click-right = daemon --send --pipe-name audio --message mouse-right
+# double-click-left = daemon --send --pipe-name audio --message double-left
+# double-click-middle = daemon --send --pipe-name audio --message double-middle
+# double-click-right = daemon --send --pipe-name audio --message double-right
+# scroll-up = daemon --send --pipe-name audio --message scroll-up
+# scroll-down = daemon --send --pipe-name audio --message scroll-down
+# ; the messages doesn't need to match mouse clicks, for instance, in this config you can send --message kill to terminate the daemon
+
+state volume
+update audio --get-volume-polybar
+mouse-left audio --toggle-mute
+mouse-middle state device
+mouse-right pavucontrol &
+scroll-up audio --increase-volume
+scroll-down audio --decrease-volume
+double-left echo ""
+double-middle echo ""
+double-right echo ""
+kill terminate
+
+state device
+update audio --get-name-polybar
+mouse-left audio --toggle-mute
+mouse-middle state volume
+mouse-right pavucontrol &
+scroll-up audio --cicle-devices
+scroll-down audio --cicle-devices
+double-left echo ""
+double-middle echo ""
+double-right echo ""
+kill terminate

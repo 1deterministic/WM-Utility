@@ -1,0 +1,27 @@
+# you start the receiver by using > daemon --receive --pipe-name name-of-pipe --config-file /path/to/config.txt
+# it will start on the first state you define in this file
+# the only command that will show output here is the one with keyword update
+# in this case, it will start in state1, executing echo 'This is state1'
+
+# when changing a state its update command will be the new output, updating once per second
+# it will also update immediately any time that any keyword is sent to the pipe
+
+# keywords can overlap between different states
+
+# reserved words:
+# state as a keyword: creates a new state
+# state as a command: transitions to another state
+# update as a keyword: state command that outputs text
+# terminate as a command: tells the receiver daemon to close
+
+state state1
+update echo "This is state1"
+keyword1 echo "This command will be executted but its output won't be displayed, the update command will be executted right after this one finishes"
+keyword2 state state2
+keyword3 terminate
+
+state state2
+update echo "This is state2"
+keyword1 echo "This command will be executted but its output won't be displayed, the update command will be executted right after this one finishes"
+keyword2 state state1
+keyword3 terminate
