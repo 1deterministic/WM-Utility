@@ -19,9 +19,9 @@ int alphaTransparency(char*, char*);
 // main
 int main(int argc, char** argv) {
     char* target = NULL;
-    char action[CLI_ACTION_MAX_LENGHT] = CLI_ACTION_HELP;
-    char value[CLI_NUMERICAL_VALUE_MAX_LENGHT] = CLI_NUMERICAL_DEFAULT;
-    char maximum[CLI_NUMERICAL_VALUE_MAX_LENGHT] = CLI_NUMERICAL_DEFAULT;
+    char action[CLI_ACTION_MAX_LENGTH] = CLI_ACTION_HELP;
+    char value[CLI_NUMERICAL_VALUE_MAX_LENGTH] = CLI_NUMERICAL_DEFAULT;
+    char maximum[CLI_NUMERICAL_VALUE_MAX_LENGTH] = CLI_NUMERICAL_DEFAULT;
 
     // get cli arguments to the right places
     for (int i = 1; i < argc; i++) {

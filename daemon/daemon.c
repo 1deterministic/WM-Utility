@@ -9,6 +9,7 @@
 #include "../common.h"
 
 #define STATE_MACHINE_MAX_STATE_COUNT 8
+#define STATE_MACHINE_MAX_KEYWORD_COMMAND_COUNT 16
 #define PIPE_LOCATION "/run/user/%d/%s" // replace with getuid() and pipeName
 #define CLI_ACTION_HELP "--help"
 #define CLI_ACTION_SEND "--send"
@@ -19,15 +20,15 @@
 
 typedef struct stateMachine StateMachine;
 struct stateMachine {
-    char stateName[CLI_ACTION_MAX_LENGHT];
+    char stateName[CLI_ACTION_MAX_LENGTH];
     int keywordCommandCount;
-    char stateKeywords[CLI_ACTION_MAX_LENGHT][CLI_ACTION_MAX_LENGHT];
-    char stateCommands[CLI_ACTION_MAX_LENGHT][COMMAND_INPUT_MAX_LENGHT];
+    char stateKeywords[STATE_MACHINE_MAX_KEYWORD_COMMAND_COUNT][CLI_ACTION_MAX_LENGTH];
+    char stateCommands[STATE_MACHINE_MAX_KEYWORD_COMMAND_COUNT][COMMAND_INPUT_MAX_LENGTH];
 };
 
 typedef struct threadData ThreadData;
 struct threadData {
-    char pipeLocation[COMMAND_INPUT_MAX_LENGHT];
+    char pipeLocation[COMMAND_INPUT_MAX_LENGTH];
     StateMachine* stateMachine;
     int stateCount;
     int currentState;
@@ -45,10 +46,10 @@ int receive(char*, char*);
 
 int main(int argc, char** argv) {
     char* target = NULL;
-    char action[CLI_ACTION_MAX_LENGHT] = CLI_ACTION_HELP;
-    char pipeName[CLI_TEXT_VALUE_MAX_LENGHT] = CLI_TEXT_DEFAULT;
-    char message[CLI_TEXT_VALUE_MAX_LENGHT] = CLI_TEXT_DEFAULT;
-    char configFile[CLI_TEXT_VALUE_MAX_LENGHT] = CLI_TEXT_DEFAULT;
+    char action[CLI_ACTION_MAX_LENGTH] = CLI_ACTION_HELP;
+    char pipeName[CLI_TEXT_VALUE_MAX_LENGTH] = CLI_TEXT_DEFAULT;
+    char message[CLI_TEXT_VALUE_MAX_LENGTH] = CLI_TEXT_DEFAULT;
+    char configFile[CLI_TEXT_VALUE_MAX_LENGTH] = CLI_TEXT_DEFAULT;
 
     // get cli arguments to the right places
     for (int i = 1; i < argc; i++) {
@@ -111,7 +112,7 @@ int send(char* pipeName, char* message) {
         return 1;
     }
 
-    char path[COMMAND_INPUT_MAX_LENGHT];
+    char path[COMMAND_INPUT_MAX_LENGTH];
     sprintf(path, PIPE_LOCATION, getuid(), pipeName);
 
     // prevent creating a file if the pipe is not created yet
@@ -134,8 +135,8 @@ int send(char* pipeName, char* message) {
 int receive(char* pipeName, char* configFile) {
     void* syncFunction(void* parameters) {
         ThreadData* threadData = (ThreadData*) parameters;
-        char input[COMMAND_INPUT_MAX_LENGHT] = "\0";
-        char output[COMMAND_OUTPUT_MAX_LENGHT] = "\0";
+        char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
+        char output[COMMAND_OUTPUT_MAX_LENGTH] = "\0";
         int terminate = 0;
 
         // sync update the interface
@@ -172,8 +173,8 @@ int receive(char* pipeName, char* configFile) {
 
     void* asyncFunction(void* parameters) {
         ThreadData* threadData = (ThreadData*) parameters;
-        char input[COMMAND_INPUT_MAX_LENGHT] = "\0";
-        char output[COMMAND_OUTPUT_MAX_LENGHT] = "\0";
+        char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
+        char output[COMMAND_OUTPUT_MAX_LENGTH] = "\0";
         int terminate = 0;
 
         while (!terminate) {
@@ -195,7 +196,7 @@ int receive(char* pipeName, char* configFile) {
                 // if a state transition is required, do it right away
                 if (!strncmp("state", newCommand, strlen("state"))) {
                     // create a copy of the state change command (strtok_r will overwrite the original otherwise)
-                    char stateChangeCommand[COMMAND_INPUT_MAX_LENGHT];
+                    char stateChangeCommand[COMMAND_INPUT_MAX_LENGTH];
                     strcpy(stateChangeCommand, newCommand);
 
                     // split 'state' from 'name' (blank space)
@@ -300,8 +301,8 @@ int receive(char* pipeName, char* configFile) {
     ThreadData threadData;
     pthread_t syncThread;
     pthread_t asyncThread;
-    char input[COMMAND_INPUT_MAX_LENGHT] = "\0";
-    char output[COMMAND_OUTPUT_MAX_LINE_LENGHT] = "\0";
+    char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
+    char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
 
     // load state machine from config file
     readTextFile(configFile, output);
@@ -326,7 +327,7 @@ int receive(char* pipeName, char* configFile) {
         }
 
         // keyword is 'state': create a new state with the specified name
-        if (!strcmp(keyword, "state")) {
+        if (!strcmp(keyword, "state") && statesCount < STATE_MACHINE_MAX_STATE_COUNT) {
             strcpy(stateMachine[statesCount].stateName, command);
             stateMachine[statesCount].keywordCommandCount = 0;
             statesCount++;
@@ -338,7 +339,7 @@ int receive(char* pipeName, char* configFile) {
             }
 
             // ignore if no state was created yet
-            if (statesCount > 0) {
+            if (statesCount > 0 && stateMachine[statesCount - 1].keywordCommandCount < STATE_MACHINE_MAX_KEYWORD_COMMAND_COUNT) {
                 stateMachine[statesCount - 1].keywordCommandCount++;
                 strcpy(stateMachine[statesCount - 1].stateKeywords[stateMachine[statesCount - 1].keywordCommandCount - 1], keyword);
                 strcpy(stateMachine[statesCount - 1].stateCommands[stateMachine[statesCount - 1].keywordCommandCount - 1], command);
@@ -356,7 +357,7 @@ int receive(char* pipeName, char* configFile) {
     // return 0;
 
     // resolves the path where the pipe will be created
-    char path[COMMAND_INPUT_MAX_LENGHT] = "\0";    
+    char path[COMMAND_INPUT_MAX_LENGTH] = "\0";    
     sprintf(path, PIPE_LOCATION, getuid(), pipeName);
 
     // prevent using an existing pipe

@@ -9,6 +9,7 @@
 #define VOLUME_MAX 100
 #define NUMBER_OF_DEVICES 32
 #define STRING_SPLIT_SIZE 16
+#define DEVICE_NAME_MAX_LENGTH COMMAND_OUTPUT_MAX_LINE_LENGTH
 
 #define CLI_ACTION_HELP "--help"
 #define CLI_ACTION_INFO "--info"
@@ -29,7 +30,7 @@ struct audioDevice {
     int deviceIndex;
     int deviceVolume;
     int deviceIsMuted;
-    char deviceName[COMMAND_OUTPUT_MAX_LINE_LENGHT];
+    char deviceName[DEVICE_NAME_MAX_LENGTH];
     int deviceIsDefault;
 };
 
@@ -54,9 +55,9 @@ int main(int argc, char** argv) {
     AudioDevice audioDevices[NUMBER_OF_DEVICES];
 
     char* target = NULL;
-    char action[CLI_ACTION_MAX_LENGHT] = CLI_ACTION_HELP;
-    char volume[CLI_NUMERICAL_VALUE_MAX_LENGHT] = CLI_NUMERICAL_DEFAULT;
-    char device[CLI_NUMERICAL_VALUE_MAX_LENGHT] = CLI_NUMERICAL_DEFAULT;
+    char action[CLI_ACTION_MAX_LENGTH] = CLI_ACTION_HELP;
+    char volume[CLI_NUMERICAL_VALUE_MAX_LENGTH] = CLI_NUMERICAL_DEFAULT;
+    char device[CLI_NUMERICAL_VALUE_MAX_LENGTH] = CLI_NUMERICAL_DEFAULT;
 
     // get cli arguments to the right places
     for (int i = 1; i < argc; i++) {
@@ -141,7 +142,7 @@ int main(int argc, char** argv) {
 
 // executes pacmd list-sinks and redirects its output to some char array
 int getPulseaudioState(AudioDevice* audioDevices, int* audioDevicesCount, int* defaultDeviceIndex) {
-    char state[COMMAND_OUTPUT_MAX_LENGHT] = "\0";
+    char state[COMMAND_OUTPUT_MAX_LENGTH] = "\0";
     runCommand("pacmd list-sinks", state);
 
     // reads the command output line by line
@@ -305,8 +306,8 @@ int info(AudioDevice* audioDevices, int audioDevicesCount) {
 // returns the volume of the default device formatted to show on polybar
 int getVolumePolybar(AudioDevice* audioDevices, int audioDevicesCount, int defaultDeviceIndex) {
     // runs the command and store its output
-    char input[COMMAND_INPUT_MAX_LENGHT] = "\0";
-    char output[COMMAND_OUTPUT_MAX_LINE_LENGHT] = "\0";
+    char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
+    char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
     sprintf(input, "color --rgb-shift --value %d --maximum 100", audioDevices[defaultDeviceIndex].deviceVolume);
     runCommand(input, output);
 
@@ -325,8 +326,8 @@ int getVolumePolybar(AudioDevice* audioDevices, int audioDevicesCount, int defau
 // returns the name of the default device formatted to show on polybar
 int getNamePolybar(AudioDevice* audioDevices, int audioDevicesCount, int defaultDeviceIndex) {
     // runs the command and store its output
-    char input[COMMAND_INPUT_MAX_LENGHT] = "\0";
-    char output[COMMAND_OUTPUT_MAX_LINE_LENGHT] = "\0";
+    char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
+    char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
     sprintf(input, "color --rgb-shift --value %d --maximum %d", audioDevices[defaultDeviceIndex].deviceIndex, audioDevicesCount);
     runCommand(input, output);
 
@@ -364,8 +365,8 @@ int setVolume(AudioDevice* audioDevices, int audioDevicesCount, int defaultDevic
     integerVolume = (integerVolume >= 0) ? integerVolume : 0;
 
     // runs the command and store its output
-    char input[COMMAND_INPUT_MAX_LENGHT] = "\0";
-    char output[COMMAND_OUTPUT_MAX_LINE_LENGHT] = "\0";
+    char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
+    char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
     sprintf(input, "pactl set-sink-volume %d %d%%", audioDevices[defaultDeviceIndex].deviceIndex, integerVolume);    
     runCommand(input, output);
 
@@ -379,8 +380,8 @@ int increaseVolume(AudioDevice* audioDevices, int audioDevicesCount, int default
     newVolume = (newVolume >= 0) ? newVolume : 0;
 
     // runs the command and store its output
-    char input[COMMAND_INPUT_MAX_LENGHT] = "\0";
-    char output[COMMAND_OUTPUT_MAX_LINE_LENGHT] = "\0";
+    char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
+    char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
     sprintf(input, "pactl set-sink-volume %d %d%%", audioDevices[defaultDeviceIndex].deviceIndex, newVolume);
     runCommand(input, output);
 
@@ -394,8 +395,8 @@ int decreaseVolume(AudioDevice* audioDevices, int audioDevicesCount, int default
     newVolume = (newVolume >= 0) ? newVolume : 0;
 
     // runs the command and store its output
-    char input[COMMAND_INPUT_MAX_LENGHT] = "\0";
-    char output[COMMAND_OUTPUT_MAX_LINE_LENGHT] = "\0";
+    char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
+    char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
     sprintf(input, "pactl set-sink-volume %d %d%%", audioDevices[defaultDeviceIndex].deviceIndex, newVolume);    
     runCommand(input, output);
 
@@ -404,8 +405,8 @@ int decreaseVolume(AudioDevice* audioDevices, int audioDevicesCount, int default
 
 int toggleMute(AudioDevice* audioDevices, int audioDevicesCount, int defaultDeviceIndex) {
     // runs the command and store its output
-    char input[COMMAND_INPUT_MAX_LENGHT] = "\0";
-    char output[COMMAND_OUTPUT_MAX_LINE_LENGHT] = "\0";
+    char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
+    char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
     sprintf(input, "pactl set-sink-mute %d %d%%", audioDevices[defaultDeviceIndex].deviceIndex, !(audioDevices[defaultDeviceIndex].deviceIsMuted));
     runCommand(input, output);
 
@@ -417,8 +418,8 @@ int cicleDevices(AudioDevice* audioDevices, int audioDevicesCount, int defaultDe
     int nextDefaultDeviceIndex = (defaultDeviceIndex + 1) % audioDevicesCount;
 
     // runs the command and store its output
-    char input[COMMAND_INPUT_MAX_LENGHT] = "\0";
-    char output[COMMAND_OUTPUT_MAX_LINE_LENGHT] = "\0";
+    char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
+    char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
     sprintf(input, "pactl set-default-sink %d", audioDevices[nextDefaultDeviceIndex].deviceIndex);
     runCommand(input, output);
 
@@ -440,8 +441,8 @@ int setDevice(AudioDevice* audioDevices, int audioDevicesCount, int defaultDevic
     integerDevice = (integerDevice >= 0) ? integerDevice : 0;
 
     // runs the command and store its output
-    char input[COMMAND_INPUT_MAX_LENGHT] = "\0";
-    char output[COMMAND_OUTPUT_MAX_LINE_LENGHT] = "\0";
+    char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
+    char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
     sprintf(input, "pacmd set-default-sink %d", audioDevices[integerDevice].deviceIndex);    
     runCommand(input, output);
 

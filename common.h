@@ -2,14 +2,13 @@
 
 #define CLI_NUMERICAL_DEFAULT "null"
 #define CLI_TEXT_DEFAULT "null"
-#define CLI_ACTION_MAX_LENGHT 32
-#define CLI_NUMERICAL_VALUE_MAX_LENGHT 8
-#define CLI_TEXT_VALUE_MAX_LENGHT 256
-#define DEVICE_NAME_MAX_LENGHT 128
-#define COMMAND_INPUT_MAX_LENGHT 1024
-#define COMMAND_OUTPUT_MAX_LENGHT 8192
-#define COMMAND_OUTPUT_MAX_LINE_LENGHT 128
-#define FILE_OUTPUT_MAX_LINE_LENGHT 1024
+#define CLI_ACTION_MAX_LENGTH 32
+#define CLI_NUMERICAL_VALUE_MAX_LENGTH 8
+#define CLI_TEXT_VALUE_MAX_LENGTH 256
+#define COMMAND_INPUT_MAX_LENGTH 1024
+#define COMMAND_OUTPUT_MAX_LENGTH 8192
+#define COMMAND_OUTPUT_MAX_LINE_LENGTH 128
+#define FILE_OUTPUT_MAX_LINE_LENGTH 1024
 
 // runs an arbitrary command and stores its text output
 int runCommand(char* command, char* output) {
@@ -18,7 +17,7 @@ int runCommand(char* command, char* output) {
         return 1;
     }
 
-    char buffer[COMMAND_OUTPUT_MAX_LINE_LENGHT];
+    char buffer[COMMAND_OUTPUT_MAX_LINE_LENGTH];
     while(fgets(buffer, sizeof(buffer), file) != NULL) {
         strcat(output, buffer);
     }
@@ -39,7 +38,7 @@ int readTextFile(char* path, char* output) {
         return 1;
     }
 
-    char buffer[FILE_OUTPUT_MAX_LINE_LENGHT];
+    char buffer[FILE_OUTPUT_MAX_LINE_LENGTH];
     while(fgets(buffer, sizeof(buffer), file) != NULL) {
         strcat(output, buffer);
     }
