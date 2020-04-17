@@ -75,20 +75,14 @@ int help(void) {
 // retuns a hex color shifted from blue to red proportional to value relative to maximum
 int rgbShift(char* value, char* maximum) {
     // validates all received parameters
-    int invalidParameters = 0;
     if (!strcmp(value, CLI_NUMERICAL_DEFAULT)) {
-        invalidParameters = 1;
         printf("Missing %s parameter!\n", CLI_VALUE_VALUE);
         fflush(stdout);
+        return 1;
     }
     if (!strcmp(maximum, CLI_NUMERICAL_DEFAULT)) {
-        invalidParameters = 1;
         printf("Missing %s parameter!\n", CLI_VALUE_MAXIMUM);
         fflush(stdout);
-    }
-
-    // stop if any invalid parameter was found
-    if (invalidParameters) {
         return 1;
     }
 
@@ -97,23 +91,18 @@ int rgbShift(char* value, char* maximum) {
 
     // prevent invalid values
     if (floatValue < 0) {
-        invalidParameters = 1;
         printf("%s must be greater than or equal to zero!\n", CLI_VALUE_VALUE);
         fflush(stdout);
+        return 1;
     }
     if (floatMaximum <= 0) {
-        invalidParameters = 1;
         printf("%s must be greater than zero!\n", CLI_VALUE_MAXIMUM);
         fflush(stdout);
+        return 1;
     }
     if (floatValue > floatMaximum) {
-        invalidParameters = 1;
-        printf("%d must be greater than or equal to %s!\n", CLI_VALUE_MAXIMUM, CLI_VALUE_VALUE);
+        printf("%s must be greater than or equal to %s!\n", CLI_VALUE_MAXIMUM, CLI_VALUE_VALUE);
         fflush(stdout);
-    }
-
-    // stop if any invalid parameter was found
-    if (invalidParameters) {
         return 1;
     }
 
@@ -130,20 +119,14 @@ int rgbShift(char* value, char* maximum) {
 // return an alpha hex channel proportional to value relative to maximum
 int alphaTransparency(char* value, char* maximum) {
     // validates all received parameters
-    int invalidParameters = 0;
     if (!strcmp(value, CLI_NUMERICAL_DEFAULT)) {
-        invalidParameters = 1;
         printf("Missing %s parameter!\n", CLI_VALUE_VALUE);
         fflush(stdout);
+        return 1;
     }
     if (!strcmp(maximum, CLI_NUMERICAL_DEFAULT)) {
-        invalidParameters = 1;
         printf("Missing %s parameter!\n", CLI_VALUE_MAXIMUM);
         fflush(stdout);
-    }
-
-    // stop if any invalid parameter was found
-    if (invalidParameters) {
         return 1;
     }
 
@@ -152,23 +135,18 @@ int alphaTransparency(char* value, char* maximum) {
 
     // prevent invalid values
     if (floatValue < 0) {
-        invalidParameters = 1;
         printf("%s must be greater than or equal to zero!\n", CLI_VALUE_VALUE);
         fflush(stdout);
+        return 1;
     }
     if (floatMaximum <= 0) {
-        invalidParameters = 1;
         printf("%s must be greater than zero!\n", CLI_VALUE_MAXIMUM);
         fflush(stdout);
+        return 1;
     }
     if (floatValue > floatMaximum) {
-        invalidParameters = 1;
         printf("%s must be greater than or equal to %s!\n", CLI_VALUE_MAXIMUM, CLI_VALUE_VALUE);
         fflush(stdout);
-    }
-
-    // stop if any invalid parameter was found
-    if (invalidParameters) {
         return 1;
     }
 

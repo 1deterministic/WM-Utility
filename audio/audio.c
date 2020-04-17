@@ -352,15 +352,9 @@ int getVolume(AudioDevice* audioDevices, int audioDevicesCount, int defaultDevic
 // sets the volume of the default device
 int setVolume(AudioDevice* audioDevices, int audioDevicesCount, int defaultDeviceIndex, char* volume) {
     // validates all received parameters
-    int invalidParameters = 0;
     if (!strcmp(volume, CLI_NUMERICAL_DEFAULT)) {
-        invalidParameters = 1;
         printf("Missing %s parameter!\n", CLI_VALUE_VOLUME);
         fflush(stdout);
-    }
-
-    // stop if any invalid parameter was found
-    if (invalidParameters) {
         return 1;
     }
 
@@ -434,15 +428,9 @@ int cicleDevices(AudioDevice* audioDevices, int audioDevicesCount, int defaultDe
 // sets the new default device
 int setDevice(AudioDevice* audioDevices, int audioDevicesCount, int defaultDeviceIndex, char* device) {
     // validates all received parameters
-    int invalidParameters = 0;
     if (!strcmp(device, CLI_NUMERICAL_DEFAULT)) {
-        invalidParameters = 1;
         printf("Missing %s parameter!\n", CLI_VALUE_DEVICE);
         fflush(stdout);
-    }
-
-    // stop if any invalid parameter was found
-    if (invalidParameters) {
         return 1;
     }
 
