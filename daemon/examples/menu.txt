@@ -1,0 +1,83 @@
+# you probably won't be using this kind of menu on a window manager but hey! it's doable!
+
+# start with 'daemon --receive --pipe-name menu --config-file menu.txt --reuse-pipe yes'
+
+state internet
+update echo "Internet"
+confirm state internet.firefox
+return state internet
+up state office
+down state media
+kill terminate
+
+    state internet.firefox
+    update echo "Firefox"
+    confirm firefox &>/dev/null & daemon --send --pipe-name menu --message return &>/dev/null &
+    return state internet
+    up state internet.chromium
+    down state internet.chromium
+    kill terminate
+
+    state internet.chromium
+    update echo "Chromium"
+    confirm chromium &>/dev/null & daemon --send --pipe-name menu --message return &>/dev/null &
+    return state internet
+    up state internet.firefox
+    down state internet.firefox
+    kill terminate
+
+state media
+update echo "Media"
+confirm state media.vlc
+return state media
+up state internet
+down state office
+kill terminate
+
+    state media.vlc
+    update echo "VLC"
+    confirm vlc &>/dev/null & daemon --send --pipe-name menu --message return &>/dev/null &
+    return state media
+    up state media.pavucontrol
+    down state media.pavucontrol
+    kill terminate
+
+    state media.pavucontrol
+    update echo "Pulseaudio Volume Control"
+    confirm pavucontrol &>/dev/null & daemon --send --pipe-name menu --message return &>/dev/null &
+    return state media
+    up state media.vlc
+    down state media.vlc
+    kill terminate
+
+state office
+update echo "Office"
+confirm state office.libreoffice-writter
+return state media
+up state media
+down state internet
+kill terminate
+
+    state office.libreoffice-writter
+    update echo "LibreOffice Writter"
+    confirm libreoffice --writer &>/dev/null & daemon --send --pipe-name menu --message return &>/dev/null &
+    return state office
+    up state office.libreoffice-impress
+    down state office.libreoffice-calc
+    kill terminate
+
+    state office.libreoffice-calc
+    update echo "LibreOffice Calc"
+    confirm libreoffice --calc &>/dev/null & daemon --send --pipe-name menu --message return &>/dev/null &
+    return state office
+    up state office.libreoffice-writter
+    down state office.libreoffice-impress
+    kill terminate
+
+    state office.libreoffice-impress
+    update echo "LibreOffice Impress"
+    confirm libreoffice --impress &>/dev/null & daemon --send --pipe-name menu --message return &>/dev/null &
+    return state office
+    up state office.libreoffice-calc
+    down state office.libreoffice-writter
+    kill terminate

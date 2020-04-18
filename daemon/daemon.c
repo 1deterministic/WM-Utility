@@ -8,7 +8,7 @@
 
 #include "../common.h"
 
-#define STATE_MACHINE_MAX_STATE_COUNT 16
+#define STATE_MACHINE_MAX_STATE_COUNT 64
 #define STATE_MACHINE_MAX_KEYWORD_COMMAND_COUNT 16
 #define PIPE_LOCATION "/run/user/%d/%s.daemon-pipe" // replace with getuid() and pipeName
 #define CLI_ACTION_HELP "--help"
