@@ -14,7 +14,7 @@ state volume
 update audio --get-name-polybar
 click-left audio --toggle-mute &>/dev/null &
 click-middle audio --cicle-devices &>/dev/null &
-click-right state device
+click-right state volume
 double-click-left pavucontrol &>/dev/null &
 double-click-middle :
 double-click-right :
