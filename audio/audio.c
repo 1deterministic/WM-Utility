@@ -328,7 +328,7 @@ int getNamePolybar(AudioDevice* audioDevices, int audioDevicesCount, int default
     // runs the command and store its output
     char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
     char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
-    sprintf(input, "color --rgb-shift --value %d --maximum %d", audioDevices[defaultDeviceIndex].deviceIndex, audioDevicesCount);
+    sprintf(input, "color --rgb-shift --value %d --maximum 100", audioDevices[defaultDeviceIndex].deviceVolume);
     runCommand(input, output);
 
     // removes the new line character from the end of the command output
