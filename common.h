@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <string.h>
 
 #define CLI_NUMERICAL_DEFAULT "null"
 #define CLI_TEXT_DEFAULT "null"

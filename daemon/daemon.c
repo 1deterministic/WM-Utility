@@ -8,13 +8,14 @@
 
 #include "../common.h"
 
-#define STATE_MACHINE_MAX_STATE_COUNT 8
+#define STATE_MACHINE_MAX_STATE_COUNT 16
 #define STATE_MACHINE_MAX_KEYWORD_COMMAND_COUNT 16
-#define PIPE_LOCATION "/run/user/%d/%s" // replace with getuid() and pipeName
+#define PIPE_LOCATION "/run/user/%d/%s.daemon-pipe" // replace with getuid() and pipeName
 #define CLI_ACTION_HELP "--help"
 #define CLI_ACTION_SEND "--send"
 #define CLI_ACTION_RECEIVE "--receive"
 #define CLI_VALUE_PIPE_NAME "--pipe-name"
+#define CLI_VALUE_REUSE_PIPE "--reuse-pipe"
 #define CLI_VALUE_MESSAGE "--message"
 #define CLI_VALUE_CONFIG_FILE "--config-file"
 
@@ -42,12 +43,13 @@ struct threadData {
 
 int help(void);
 int send(char*, char*);
-int receive(char*, char*);
+int receive(char*, char*, char*);
 
 int main(int argc, char** argv) {
     char* target = NULL;
     char action[CLI_ACTION_MAX_LENGTH] = CLI_ACTION_HELP;
     char pipeName[CLI_TEXT_VALUE_MAX_LENGTH] = CLI_TEXT_DEFAULT;
+    char reusePipe[CLI_TEXT_VALUE_MAX_LENGTH] = CLI_TEXT_DEFAULT;
     char message[CLI_TEXT_VALUE_MAX_LENGTH] = CLI_TEXT_DEFAULT;
     char configFile[CLI_TEXT_VALUE_MAX_LENGTH] = CLI_TEXT_DEFAULT;
 
@@ -65,6 +67,8 @@ int main(int argc, char** argv) {
             strcpy(action, CLI_ACTION_RECEIVE);
         } else if (!strcmp(argv[i], CLI_VALUE_PIPE_NAME)) {
             target = pipeName;
+        } else if (!strcmp(argv[i], CLI_VALUE_REUSE_PIPE)) {
+            target = reusePipe;
         } else if (!strcmp(argv[i], CLI_VALUE_MESSAGE)) {
             target = message;
         } else if (!strcmp(argv[i], CLI_VALUE_CONFIG_FILE)) {
@@ -83,7 +87,7 @@ int main(int argc, char** argv) {
     } else if (!strcmp(action, CLI_ACTION_SEND)) {
         send(pipeName, message);
     } else if (!strcmp(action, CLI_ACTION_RECEIVE)) {
-        receive(pipeName, configFile);
+        receive(pipeName, configFile, reusePipe);
     } else {
         help();
     }
@@ -94,7 +98,7 @@ int main(int argc, char** argv) {
 // shows the help message
 int help(void) {
     printf("daemon - CLI tool to make your polybar modules more versatile\n");
-    printf("  daemon %s %s pipe-name $s config-file: create a receiver that will listen on pipe-name and behave as defined in config-file\n", CLI_ACTION_RECEIVE, CLI_VALUE_PIPE_NAME, CLI_VALUE_CONFIG_FILE);
+    printf("  daemon %s %s pipe-name %s config-file [%s yes/no]: create a receiver that will listen on pipe-name and behave as defined in config-file, reusing pipe-name if specified\n", CLI_ACTION_RECEIVE, CLI_VALUE_PIPE_NAME, CLI_VALUE_CONFIG_FILE, CLI_VALUE_REUSE_PIPE);
     printf("  daemon %s %s pipe-name %s message: sends message to the daemon listening in pipe-name\n", CLI_ACTION_SEND, CLI_VALUE_PIPE_NAME, CLI_VALUE_MESSAGE);
     fflush(stdout);
 
@@ -134,7 +138,7 @@ int send(char* pipeName, char* message) {
     return 0;
 }
 
-int receive(char* pipeName, char* configFile) {
+int receive(char* pipeName, char* configFile, char* reusePipe) {
     void* syncFunction(void* parameters) {
         ThreadData* threadData = (ThreadData*) parameters;
         char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
@@ -292,6 +296,13 @@ int receive(char* pipeName, char* configFile) {
         fflush(stdout);
         return 1;
     }
+    // reusePipe is optional
+    // if (!strcmp(reusePipe, CLI_TEXT_DEFAULT)) {
+    //     printf("Missing %s parameter!\n", CLI_VALUE_REUSE_PIPE);
+    //     fflush(stdout);
+    //     return 1;
+    // }
+
     if (!fileExists(configFile)) {
         printf("The config file %s does not exist!\n", configFile);
         fflush(stdout);
@@ -362,17 +373,21 @@ int receive(char* pipeName, char* configFile) {
     char path[COMMAND_INPUT_MAX_LENGTH] = "\0";    
     sprintf(path, PIPE_LOCATION, getuid(), pipeName);
 
-    // prevent using an existing pipe
-    if (fileExists(path)) {
-        printf("The pipe %s is already being used! Please, use another name.\n", pipeName);
-        fflush(stdout);
-        return 1;
+    // if reusePipe is different than yes, prevent using an existing pipe
+    if (strcmp(reusePipe, "yes")) {
+        if (fileExists(path)) {
+            printf("The pipe %s is already being used! Please, use another name or, if you want to reuse it, add the cli option %s yes.\n", pipeName, CLI_VALUE_REUSE_PIPE);
+            fflush(stdout);
+            return 1;
+        }
     }
 
     // create pipe
-    sprintf(input, "\0");
-    sprintf(input, "mkfifo %s", path);
-    runCommand(input, output);
+    if (!fileExists(path)) {
+        sprintf(input, "\0");
+        sprintf(input, "mkfifo %s", path);
+        runCommand(input, output);
+    }    
 
     threadData.stateMachine = stateMachine;
     strcpy(threadData.pipeLocation, path);
