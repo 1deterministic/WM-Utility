@@ -8,6 +8,9 @@
 
 # keywords can overlap between different states
 
+# if starting a graphical application on a keyword command use '&>/dev/null &' after the command to prevent it from locking the terminal
+# if sending a signal using daemon --send, also use '&>/dev/null &' for the same reason
+
 # reserved words:
 # state as a keyword: creates a new state
 # state as a command: transitions to another state
@@ -16,12 +19,12 @@
 
 state state1
 update echo "This is state1"
-keyword1 echo "This command will be executted but its output won't be displayed, the update command will be executted right after this one finishes"
+keyword1 echo "This command will be executted but its output won't be displayed, the update command will be executted right after this one finishes" &>/dev/null &
 keyword2 state state2
 keyword3 terminate
 
 state state2
 update echo "This is state2"
-keyword1 echo "This command will be executted but its output won't be displayed, the update command will be executted right after this one finishes"
+keyword1 echo "This command will be executted but its output won't be displayed, the update command will be executted right after this one finishes" &>/dev/null &
 keyword2 state state1
 keyword3 terminate
