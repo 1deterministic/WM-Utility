@@ -1,23 +1,23 @@
 state volume
 update audio --get-volume-polybar
-click-left audio --toggle-mute &>/dev/null &
-click-middle audio --cicle-devices &>/dev/null &
+click-left audio --toggle-mute
+click-middle audio --cicle-devices
 click-right state device
 double-click-left pavucontrol &>/dev/null &
 double-click-middle :
 double-click-right :
-scroll-up audio --increase-volume &>/dev/null &
-scroll-down audio --decrease-volume &>/dev/null &
+scroll-up audio --increase-volume
+scroll-down audio --decrease-volume
 kill terminate
 
-state volume
+state device
 update audio --get-name-polybar
-click-left audio --toggle-mute &>/dev/null &
-click-middle audio --cicle-devices &>/dev/null &
+click-left audio --toggle-mute
+click-middle audio --cicle-devices
 click-right state volume
 double-click-left pavucontrol &>/dev/null &
 double-click-middle :
 double-click-right :
-scroll-up audio --increase-volume &>/dev/null &
-scroll-down audio --decrease-volume &>/dev/null &
+scroll-up audio --increase-volume
+scroll-down audio --decrease-volume
 kill terminate

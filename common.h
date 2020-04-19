@@ -7,9 +7,12 @@
 #define CLI_NUMERICAL_VALUE_MAX_LENGTH 8
 #define CLI_TEXT_VALUE_MAX_LENGTH 256
 #define COMMAND_INPUT_MAX_LENGTH 1024
-#define COMMAND_OUTPUT_MAX_LENGTH 8192
+#define COMMAND_OUTPUT_MAX_LENGTH 262144 // up to 256Kb
 #define COMMAND_OUTPUT_MAX_LINE_LENGTH 128
 #define FILE_OUTPUT_MAX_LINE_LENGTH 1024
+
+#define CLI_PARAMETER_NAME_MAX_LENGHT 32
+#define CLI_PARAMETER_VALUE_MAX_LENGHT 256
 
 // runs an arbitrary command and stores its text output
 int runCommand(char* command, char* output) {

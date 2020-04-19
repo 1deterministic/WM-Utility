@@ -11,6 +11,6 @@ if [[ ! -d $HOME/.local/bin ]]; then
     mkdir $HOME/.local/bin
 fi
 
-gcc ./audio/audio.c -o $HOME/.local/bin/audio -lm
-gcc ./color/color.c -o $HOME/.local/bin/color -lm
-gcc ./daemon/daemon.c -o $HOME/.local/bin/daemon -lm -lpthread
+gcc -O0 ./audio/audio.c -o $HOME/.local/bin/audio -lm
+gcc -O0 ./color/color.c -o $HOME/.local/bin/color -lm
+gcc -O0 ./daemon/daemon.c -o $HOME/.local/bin/daemon -lm -lpthread

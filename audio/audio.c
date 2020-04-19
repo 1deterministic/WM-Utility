@@ -55,53 +55,53 @@ int main(int argc, char** argv) {
     AudioDevice audioDevices[NUMBER_OF_DEVICES];
 
     char* target = NULL;
-    char action[CLI_ACTION_MAX_LENGTH] = CLI_ACTION_HELP;
-    char volume[CLI_NUMERICAL_VALUE_MAX_LENGTH] = CLI_NUMERICAL_DEFAULT;
-    char device[CLI_NUMERICAL_VALUE_MAX_LENGTH] = CLI_NUMERICAL_DEFAULT;
+    char action[CLI_PARAMETER_NAME_MAX_LENGHT] = CLI_ACTION_HELP;
+    char volume[CLI_PARAMETER_VALUE_MAX_LENGHT] = CLI_NUMERICAL_DEFAULT;
+    char device[CLI_PARAMETER_VALUE_MAX_LENGHT] = CLI_NUMERICAL_DEFAULT;
 
     // get cli arguments to the right places
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], CLI_ACTION_HELP)) {
             target = NULL;
-            strcpy(action, CLI_ACTION_HELP);
+            strncpy(action, CLI_ACTION_HELP, CLI_PARAMETER_NAME_MAX_LENGHT);
             break;
         } else if (!strcmp(argv[i], CLI_ACTION_INFO)) {
             target = NULL;
-            strcpy(action, CLI_ACTION_INFO);
+            strncpy(action, CLI_ACTION_INFO, CLI_PARAMETER_NAME_MAX_LENGHT);
         } else if (!strcmp(argv[i], CLI_ACTION_GET_VOLUME_POLYBAR)) {
             target = NULL;
-            strcpy(action, CLI_ACTION_GET_VOLUME_POLYBAR);
+            strncpy(action, CLI_ACTION_GET_VOLUME_POLYBAR, CLI_PARAMETER_NAME_MAX_LENGHT);
         } else if (!strcmp(argv[i], CLI_ACTION_GET_NAME_POLYBAR)) {
             target = NULL;
-            strcpy(action, CLI_ACTION_GET_NAME_POLYBAR);
+            strncpy(action, CLI_ACTION_GET_NAME_POLYBAR, CLI_PARAMETER_NAME_MAX_LENGHT);
         } else if (!strcmp(argv[i], CLI_ACTION_GET_VOLUME)) {
             target = NULL;
-            strcpy(action, CLI_ACTION_GET_VOLUME);
+            strncpy(action, CLI_ACTION_GET_VOLUME, CLI_PARAMETER_NAME_MAX_LENGHT);
         } else if (!strcmp(argv[i], CLI_ACTION_SET_VOLUME)) {
             target = NULL;
-            strcpy(action, CLI_ACTION_SET_VOLUME);
+            strncpy(action, CLI_ACTION_SET_VOLUME, CLI_PARAMETER_NAME_MAX_LENGHT);
         } else if (!strcmp(argv[i], CLI_ACTION_INCREASE_VOLUME)) {
             target = NULL;
-            strcpy(action, CLI_ACTION_INCREASE_VOLUME);
+            strncpy(action, CLI_ACTION_INCREASE_VOLUME, CLI_PARAMETER_NAME_MAX_LENGHT);
         } else if (!strcmp(argv[i], CLI_ACTION_DECREASE_VOLUME)) {
             target = NULL;
-            strcpy(action, CLI_ACTION_DECREASE_VOLUME);
+            strncpy(action, CLI_ACTION_DECREASE_VOLUME, CLI_PARAMETER_NAME_MAX_LENGHT);
         } else if (!strcmp(argv[i], CLI_ACTION_TOGGLE_MUTE)) {
             target = NULL;
-            strcpy(action, CLI_ACTION_TOGGLE_MUTE);
+            strncpy(action, CLI_ACTION_TOGGLE_MUTE, CLI_PARAMETER_NAME_MAX_LENGHT);
         } else if (!strcmp(argv[i], CLI_ACTION_CICLE_DEVICES)) {
             target = NULL;
-            strcpy(action, CLI_ACTION_CICLE_DEVICES);
+            strncpy(action, CLI_ACTION_CICLE_DEVICES, CLI_PARAMETER_NAME_MAX_LENGHT);
         } else if (!strcmp(argv[i], CLI_ACTION_SET_DEVICE)) {
             target = NULL;
-            strcpy(action, CLI_ACTION_SET_DEVICE);
+            strncpy(action, CLI_ACTION_SET_DEVICE, CLI_PARAMETER_NAME_MAX_LENGHT);
         } else if (!strcmp(argv[i], CLI_VALUE_VOLUME)) {
             target = volume;
         } else if (!strcmp(argv[i], CLI_VALUE_DEVICE)) {
             target = device;
         } else {
             if (target != NULL) {
-                strcpy(target, argv[i]);
+                strncpy(target, argv[i], CLI_PARAMETER_VALUE_MAX_LENGHT);
             }
             target = NULL;
         }
@@ -142,23 +142,18 @@ int main(int argc, char** argv) {
 
 // executes pacmd list-sinks and redirects its output to some char array
 int getPulseaudioState(AudioDevice* audioDevices, int* audioDevicesCount, int* defaultDeviceIndex) {
-    char state[COMMAND_OUTPUT_MAX_LENGTH] = "\0";
-    runCommand("pacmd list-sinks", state);
+    char output[COMMAND_OUTPUT_MAX_LENGTH] = "\0";
+    runCommand("pacmd list-sinks", output);
 
-    // reads the command output line by line
-    char* line = state;
-    char* nextLine = line;
-    while ((line = strtok_r(nextLine, "\n", &nextLine))) {
+    // for each line of the command output
+    for (char* lineRest = NULL, * line = strtok_r(output, "\n", &lineRest); line != NULL; line = strtok_r(NULL, "\n", &lineRest)) {
         // we will need to split the line, this array will have pointers to where the text is
         char* values[STRING_SPLIT_SIZE];
         int valuesCount = 0;
 
         // a line startnig with '  * index:' gives the index of the default device
         if (!strncmp("  * index:", line, strlen("  * index:"))) {
-            // splits the line on space characters (up to STRING_SPLIT_SIZE values)
-            char* value = line;
-            char* nextValue = value;
-            while ((value = strtok_r(nextValue, " ", &nextValue)) && (valuesCount < STRING_SPLIT_SIZE)) {
+            for (char* valueRest = NULL, * value = strtok_r(line, " ", &valueRest); value != NULL && valuesCount < STRING_SPLIT_SIZE; value = strtok_r(NULL, " ", &valueRest)) {
                 values[valuesCount] = value;
                 valuesCount++;
             }
@@ -167,15 +162,12 @@ int getPulseaudioState(AudioDevice* audioDevices, int* audioDevicesCount, int* d
             audioDevices[*audioDevicesCount].deviceIndex = atoi(values[2]);
             audioDevices[*audioDevicesCount].deviceIsDefault = 1;
             *defaultDeviceIndex = *audioDevicesCount;
-            *audioDevicesCount = *audioDevicesCount + 1;
+            (*audioDevicesCount)++;
         }
 
         // a line startnig with '  * index:' gives the index of some non-default device
         else if (!strncmp("    index:", line, strlen("    index:"))) {
-            // splits the line on space characters (up to STRING_SPLIT_SIZE values)
-            char* value = line;
-            char* nextValue = value;
-            while ((value = strtok_r(nextValue, " ", &nextValue)) && (valuesCount < STRING_SPLIT_SIZE)) {
+            for (char* valueRest = NULL, * value = strtok_r(line, " ", &valueRest); value != NULL && valuesCount < STRING_SPLIT_SIZE; value = strtok_r(NULL, " ", &valueRest)) {
                 values[valuesCount] = value;
                 valuesCount++;
             }
@@ -183,85 +175,65 @@ int getPulseaudioState(AudioDevice* audioDevices, int* audioDevicesCount, int* d
             // create a new audio device
             audioDevices[*audioDevicesCount].deviceIndex = atoi(values[1]);
             audioDevices[*audioDevicesCount].deviceIsDefault = 0;
-            *audioDevicesCount = *audioDevicesCount + 1;
+            (*audioDevicesCount)++;
         }
 
         // a line starting with '	volume:' gives the volume of the device being read
         else if (!strncmp("	volume:", line, strlen("	volume:"))) {
-            // ignore line if no audio device was found yet
-            if (*audioDevicesCount < 1) {
-                continue;
-            }
+            // continue only if an audio device was already found
+            if (*audioDevicesCount > 0) {
+                for (char* valueRest = NULL, * value = strtok_r(line, " ", &valueRest); value != NULL && valuesCount < STRING_SPLIT_SIZE; value = strtok_r(NULL, " ", &valueRest)) {
+                    if (valuesCount == 4 || valuesCount == 11) {
+                        // remove percentage symbol
+                        value = strtok_r(value, "%", &value);
+                    }
 
-            // splits the line on space characters (up to STRING_SPLIT_SIZE values)
-            char* value = line;
-            char* nextValue = value;
-            while ((value = strtok_r(nextValue, " ", &nextValue)) && (valuesCount < STRING_SPLIT_SIZE)) {
-                // remove the percentage symbol
-                if ((valuesCount == 4) || (valuesCount == 11)) {
-                    char* noPercentage = value;
-                    char* nextNoPercentage = noPercentage;
-                    noPercentage = strtok_r(nextNoPercentage, "%", &nextNoPercentage);
-                    value = noPercentage;
+                    values[valuesCount] = value;
+                    valuesCount++;
                 }
 
-                values[valuesCount] = value;
-                valuesCount++;
+                // sets the volume of the current device to max of left and right volumes
+                int leftVolume = atoi(values[4]);
+                int rightVolume = atoi(values[11]);
+                audioDevices[*audioDevicesCount - 1].deviceVolume = (leftVolume > rightVolume) ? leftVolume : rightVolume;
             }
-            
-            // sets the volume of the current device to max of left and right volumes
-            int leftVolume = atoi(values[4]);
-            int rightVolume = atoi(values[11]);
-            audioDevices[*audioDevicesCount - 1].deviceVolume = (leftVolume > rightVolume) ? leftVolume : rightVolume;
         }
 
         // a line starting with '		device.product.name =' gives the name of the device being read
         else if (!strncmp("		device.product.name =", line, strlen("		device.product.name ="))) {
-            // ignore line if no audio device was found yet
-            if (*audioDevicesCount < 1) {
-                continue;
-            }
-
-            // splits the line on equal signs (up to STRING_SPLIT_SIZE values)
-            char* value = line;
-            char* nextValue = value;
-            while ((value = strtok_r(nextValue, "=", &nextValue)) && (valuesCount < STRING_SPLIT_SIZE)) {
-                // remove quotes
-                if (!strncmp(" \"", value, strlen(" \""))) {
-                    char* noQuotes = value;
-                    char* nextNoQuotes = noQuotes;
-                    while ((noQuotes = strtok_r(nextNoQuotes, "\"", &nextNoQuotes))) {
-                        if (strcmp(noQuotes, " ")) {
-                            value = noQuotes;
-                            break;
+            // continue only if an audio device was already found
+            if (*audioDevicesCount > 0) {
+                for (char* valueRest = NULL, * value = strtok_r(line, "=", &valueRest); value != NULL && valuesCount < STRING_SPLIT_SIZE; value = strtok_r(NULL, "=", &valueRest)) {
+                    if (valuesCount == 1) {
+                        for (char* noQuotesRest = NULL, * noQuotes = strtok_r(value, "\"", &noQuotesRest); noQuotes != NULL; noQuotes = strtok_r(NULL, "\"", &noQuotesRest)) {
+                            if (strcmp(noQuotes, " ")) {
+                                value = noQuotes;
+                                break;
+                            }
                         }
                     }
+
+                    values[valuesCount] = value;
+                    valuesCount++;
                 }
 
-                values[valuesCount] = value;
-                valuesCount++;
+                // sets the name of the current device
+                strncpy(audioDevices[*audioDevicesCount - 1].deviceName, values[1], DEVICE_NAME_MAX_LENGTH);
             }
-            
-            // sets the name of the current device
-            strcpy(audioDevices[*audioDevicesCount - 1].deviceName, values[1]);
         }
 
         // a line starting with '	muted:' gives the muted state of the device being read
         else if (!strncmp("	muted:", line, strlen("	muted:"))) {
-            // ignore line if no audio device was found yet
-            if (*audioDevicesCount < 1) {
-                continue;
-            }
-
-            char* value = line;
-            char* nextValue = value;
-            while ((value = strtok_r(nextValue, ":", &nextValue)) && (valuesCount < 16)) {
-                values[valuesCount] = value;
-                valuesCount++;
+            // continue only if an audio device was already found
+            if (*audioDevicesCount > 0) {
+                for (char* valueRest = NULL, * value = strtok_r(line, " ", &valueRest); value != NULL && valuesCount < STRING_SPLIT_SIZE; value = strtok_r(NULL, " ", &valueRest)) {
+                    values[valuesCount] = value;
+                    valuesCount++;
+                }
             }
 
             // sets the muted state of the current device
-            audioDevices[*audioDevicesCount - 1].deviceIsMuted = !strcmp(values[1], " yes");
+            audioDevices[*audioDevicesCount - 1].deviceIsMuted = !strcmp(values[1], "yes");
         }
 
         // debug
@@ -305,19 +277,24 @@ int info(AudioDevice* audioDevices, int audioDevicesCount) {
 
 // returns the volume of the default device formatted to show on polybar
 int getVolumePolybar(AudioDevice* audioDevices, int audioDevicesCount, int defaultDeviceIndex) {
-    // runs the command and store its output
-    char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
-    char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
-    sprintf(input, "color --rgb-shift --value %d --maximum 100", audioDevices[defaultDeviceIndex].deviceVolume);
-    runCommand(input, output);
+    char underlineColor[CLI_PARAMETER_VALUE_MAX_LENGHT] = "#555555";
+    if (!audioDevices[defaultDeviceIndex].deviceIsMuted) {
+        // runs the command and store its output
+        char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
+        char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
+        sprintf(input, "color --rgb-shift --value %d --maximum 100", audioDevices[defaultDeviceIndex].deviceVolume);
+        runCommand(input, output);
 
-    // removes the new line character from the end of the command output
-    char* noNewline = output;
-    char* nextNoNewline = noNewline;
-    noNewline = strtok_r(nextNoNewline, "\n", &nextNoNewline);
+        // removes the new line character from the end of the command output
+        for (char* lineRest = NULL, * line = strtok_r(output, "\n", &lineRest); line != NULL; line = strtok_r(NULL, "\n", &lineRest)) {
+            if (strcmp(line, " ")) {
+                strncpy(underlineColor, line, CLI_PARAMETER_VALUE_MAX_LENGHT);
+                break;
+            }
+        }
+    }
 
-
-    printf("%%{u%s}%d\n", noNewline, audioDevices[defaultDeviceIndex].deviceVolume);
+    printf("%%{u%s}%d\n", underlineColor, audioDevices[defaultDeviceIndex].deviceVolume);
     fflush(stdout);
 
     return 0;
@@ -325,18 +302,24 @@ int getVolumePolybar(AudioDevice* audioDevices, int audioDevicesCount, int defau
 
 // returns the name of the default device formatted to show on polybar
 int getNamePolybar(AudioDevice* audioDevices, int audioDevicesCount, int defaultDeviceIndex) {
-    // runs the command and store its output
-    char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
-    char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
-    sprintf(input, "color --rgb-shift --value %d --maximum 100", audioDevices[defaultDeviceIndex].deviceVolume);
-    runCommand(input, output);
+    char underlineColor[CLI_PARAMETER_VALUE_MAX_LENGHT] = "#555555";
+    if (!audioDevices[defaultDeviceIndex].deviceIsMuted) {
+        // runs the command and store its output
+        char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
+        char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
+        sprintf(input, "color --rgb-shift --value %d --maximum 100", audioDevices[defaultDeviceIndex].deviceVolume);
+        runCommand(input, output);
 
-    // removes the new line character from the end of the command output
-    char* noNewline = output;
-    char* nextNoNewline = noNewline;
-    noNewline = strtok_r(nextNoNewline, "\n", &nextNoNewline);
+        // removes the new line character from the end of the command output
+        for (char* lineRest = NULL, * line = strtok_r(output, "\n", &lineRest); line != NULL; line = strtok_r(NULL, "\n", &lineRest)) {
+            if (strcmp(line, " ")) {
+                strncpy(underlineColor, line, CLI_PARAMETER_VALUE_MAX_LENGHT);
+                break;
+            }
+        }
+    }
 
-    printf("%%{u%s}%s\n", noNewline, audioDevices[defaultDeviceIndex].deviceName);
+    printf("%%{u%s}%s\n", underlineColor, audioDevices[defaultDeviceIndex].deviceName);
     fflush(stdout);
 
     return 0;

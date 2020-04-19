@@ -10,6 +10,8 @@
 
 #define STATE_MACHINE_MAX_STATE_COUNT 64
 #define STATE_MACHINE_MAX_KEYWORD_COMMAND_COUNT 16
+#define STATE_MACHINE_MAX_KEYWORD_LENGTH CLI_PARAMETER_NAME_MAX_LENGHT
+#define STATE_MACHINE_MAX_COMMAND_LENGTH COMMAND_INPUT_MAX_LENGTH
 #define PIPE_LOCATION "/run/user/%d/%s.daemon-pipe" // replace with getuid() and pipeName
 #define CLI_ACTION_HELP "--help"
 #define CLI_ACTION_SEND "--send"
@@ -23,8 +25,8 @@ typedef struct stateMachine StateMachine;
 struct stateMachine {
     char stateName[CLI_ACTION_MAX_LENGTH];
     int keywordCommandCount;
-    char stateKeywords[STATE_MACHINE_MAX_KEYWORD_COMMAND_COUNT][CLI_ACTION_MAX_LENGTH];
-    char stateCommands[STATE_MACHINE_MAX_KEYWORD_COMMAND_COUNT][COMMAND_INPUT_MAX_LENGTH];
+    char stateKeywords[STATE_MACHINE_MAX_KEYWORD_COMMAND_COUNT][STATE_MACHINE_MAX_KEYWORD_LENGTH];
+    char stateCommands[STATE_MACHINE_MAX_KEYWORD_COMMAND_COUNT][STATE_MACHINE_MAX_COMMAND_LENGTH];
 };
 
 typedef struct threadData ThreadData;
@@ -47,24 +49,24 @@ int receive(char*, char*, char*);
 
 int main(int argc, char** argv) {
     char* target = NULL;
-    char action[CLI_ACTION_MAX_LENGTH] = CLI_ACTION_HELP;
-    char pipeName[CLI_TEXT_VALUE_MAX_LENGTH] = CLI_TEXT_DEFAULT;
-    char reusePipe[CLI_TEXT_VALUE_MAX_LENGTH] = CLI_TEXT_DEFAULT;
-    char message[CLI_TEXT_VALUE_MAX_LENGTH] = CLI_TEXT_DEFAULT;
-    char configFile[CLI_TEXT_VALUE_MAX_LENGTH] = CLI_TEXT_DEFAULT;
+    char action[CLI_PARAMETER_NAME_MAX_LENGHT] = CLI_ACTION_HELP;
+    char pipeName[CLI_PARAMETER_VALUE_MAX_LENGHT] = CLI_TEXT_DEFAULT;
+    char reusePipe[CLI_PARAMETER_VALUE_MAX_LENGHT] = CLI_TEXT_DEFAULT;
+    char message[CLI_PARAMETER_VALUE_MAX_LENGHT] = CLI_TEXT_DEFAULT;
+    char configFile[CLI_PARAMETER_VALUE_MAX_LENGHT] = CLI_TEXT_DEFAULT;
 
     // get cli arguments to the right places
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], CLI_ACTION_HELP)) {
             target = NULL;
-            strcpy(action, CLI_ACTION_HELP);
+            strncpy(action, CLI_ACTION_HELP, CLI_PARAMETER_NAME_MAX_LENGHT);
             break;
         } else if (!strcmp(argv[i], CLI_ACTION_SEND)) {
             target = NULL;
-            strcpy(action, CLI_ACTION_SEND);
+            strncpy(action, CLI_ACTION_SEND, CLI_PARAMETER_NAME_MAX_LENGHT);
         } else if (!strcmp(argv[i], CLI_ACTION_RECEIVE)) {
             target = NULL;
-            strcpy(action, CLI_ACTION_RECEIVE);
+            strncpy(action, CLI_ACTION_RECEIVE, CLI_PARAMETER_NAME_MAX_LENGHT);
         } else if (!strcmp(argv[i], CLI_VALUE_PIPE_NAME)) {
             target = pipeName;
         } else if (!strcmp(argv[i], CLI_VALUE_REUSE_PIPE)) {
@@ -75,7 +77,7 @@ int main(int argc, char** argv) {
             target = configFile;
         } else {
             if (target != NULL) {
-                strcpy(target, argv[i]);
+                strncpy(target, argv[i], CLI_PARAMETER_VALUE_MAX_LENGHT);
             }
             target = NULL;
         }
@@ -147,11 +149,11 @@ int receive(char* pipeName, char* configFile, char* reusePipe) {
 
         // sync update the interface
         while (!terminate) {
-            // reset contents of input to prevent being concatenated by strcpy
+            // reset contents of input to prevent being concatenated by strncpy
             sprintf(input, "\0");
             // pulls the current command
             pthread_mutex_lock(&(threadData->currentCommandLock));
-            strcpy(input, threadData->currentCommand);
+            strncpy(input, threadData->currentCommand, COMMAND_INPUT_MAX_LENGTH);
             pthread_mutex_unlock(&(threadData->currentCommandLock));
 
             // reset contents of output to prevent being concatenated by readTextFile
@@ -203,7 +205,7 @@ int receive(char* pipeName, char* configFile, char* reusePipe) {
                 if (!strncmp("state", newCommand, strlen("state"))) {
                     // create a copy of the state change command (strtok_r will overwrite the original otherwise)
                     char stateChangeCommand[COMMAND_INPUT_MAX_LENGTH];
-                    strcpy(stateChangeCommand, newCommand);
+                    strncpy(stateChangeCommand, newCommand, COMMAND_INPUT_MAX_LENGTH);
 
                     // split 'state' from 'name' (blank space)
                     char* stateWord = stateChangeCommand;
@@ -240,6 +242,7 @@ int receive(char* pipeName, char* configFile, char* reusePipe) {
                         // if no update command was found, the current one will be used
                     }
                 }
+
                 // sanity check
                 if (!strncmp("state", newCommand, strlen("state"))) {
                     // something went really wrong
@@ -255,26 +258,26 @@ int receive(char* pipeName, char* configFile, char* reusePipe) {
                     sprintf(output, "\0");
                     // execute the current command (won't show its output anywhere)
                     runCommand(newCommand, output);
+
+                    // reset contents of output to prevent being concatenated by runCommand
+                    sprintf(input, "\0");
+                    // pulls the current command
+                    pthread_mutex_lock(&(threadData->currentCommandLock));
+                    strncpy(input, threadData->currentCommand, COMMAND_INPUT_MAX_LENGTH);
+                    pthread_mutex_unlock(&(threadData->currentCommandLock));
+
+                    // reset contents of output to prevent being concatenated by runCommand
+                    sprintf(output, "\0");
+                    // execute the update command (to reflect immediately any changes that newCommand may have done)
+                    runCommand(input, output);
+
+                    // draw output on screen
+                    pthread_mutex_lock(&(threadData->screenLock));
+                    printf("%s", output);
+                    fflush(stdout);
+                    pthread_mutex_unlock(&(threadData->screenLock));
                 }
             }
-
-            // reset contents of output to prevent being concatenated by runCommand
-            sprintf(input, "\0");
-            // pulls the current command
-            pthread_mutex_lock(&(threadData->currentCommandLock));
-            strcpy(input, threadData->currentCommand);
-            pthread_mutex_unlock(&(threadData->currentCommandLock));
-
-            // reset contents of output to prevent being concatenated by runCommand
-            sprintf(output, "\0");
-            // execute the update command (to reflect immediately any changes that newCommand may have done)
-            runCommand(input, output);
-
-            // draw output on screen
-            pthread_mutex_lock(&(threadData->screenLock));
-            printf("%s", output);
-            fflush(stdout);
-            pthread_mutex_unlock(&(threadData->screenLock));
 
             // update terminate with data from threadData
             pthread_mutex_lock(&(threadData->terminateLock));
@@ -321,46 +324,43 @@ int receive(char* pipeName, char* configFile, char* reusePipe) {
     readTextFile(configFile, output);
 
     // decode config file line by line
-    char* line = output;
-    char* nextLine = line;
-    while ((line = strtok_r(nextLine, "\n", &nextLine))) {
-        // split line in keyword and command on the first space character
-        char* keyword = line;
-        char* command = keyword;
-        keyword = strtok_r(command, " ", &command);
+    // char* line = output;
+    // char* nextLine = line;
 
-        // this will ignore spaces at the start of the line from being considered keywords
-        while (!strncmp(" ", keyword, strlen(" "))) {
-            keyword = strtok_r(command, " ", &command);
-        }
+    // for each line of the config file
+    for (char* lineRest = NULL, * line = strtok_r(output, "\n", &lineRest); line != NULL; line = strtok_r(NULL, "\n", &lineRest)) {
+        printf("'%s'\n", line);
 
-        // ignore a line starting with # or \n (comment or blank line)
-        if (!strncmp("#", keyword, strlen("#")) || !strncmp("\n", keyword, strlen("\n"))) {
-            continue;
-        }
+        char* keyword = NULL;
+        char* command = NULL;
 
-        // keyword is 'state': create a new state with the specified name
-        if (!strcmp(keyword, "state") && statesCount < STATE_MACHINE_MAX_STATE_COUNT) {
-            strcpy(stateMachine[statesCount].stateName, command);
-            stateMachine[statesCount].keywordCommandCount = 0;
-            statesCount++;
-        // else is a keyword
-        } else {
-            // sanity check
-            if (!strcmp(keyword, "") || !strcmp(command, "")) {
-                continue;
+        // break the line in every space character
+        for (char* wordRest = NULL, * word = strtok_r(line, " ", &wordRest); word != NULL; word = strtok_r(NULL, "\n", &wordRest)) {
+            // if the word is not empty, consider the keyword:command pair found and stop searching
+            if (strcmp(word, "")) {
+                keyword = word;
+                command = wordRest;
+                break;
             }
+        }
 
-            // ignore if no state was created yet
-            if (statesCount > 0 && stateMachine[statesCount - 1].keywordCommandCount < STATE_MACHINE_MAX_KEYWORD_COMMAND_COUNT) {
+        // if a keyword:command pair was found and the number of states is within the maximum allowed
+        if (keyword != NULL && command != NULL && statesCount < STATE_MACHINE_MAX_STATE_COUNT) {
+            // if keyword is state, a new state is created
+            if (!strcmp(keyword, "state")) {
+                strncpy(stateMachine[statesCount].stateName, command, (strlen(command) < CLI_ACTION_MAX_LENGTH - 1) ? strlen(command) : CLI_ACTION_MAX_LENGTH - 1);
+                statesCount++;
+            // else is a normal keyword, add a keyword:command pair if there is at least one state created and the number of keyword:command pairs of this state is within the maximum allowed
+            } else if (statesCount > 0 && stateMachine[statesCount - 1].keywordCommandCount < STATE_MACHINE_MAX_STATE_COUNT) {
+                strncpy(stateMachine[statesCount - 1].stateKeywords[stateMachine[statesCount - 1].keywordCommandCount], keyword, STATE_MACHINE_MAX_KEYWORD_LENGTH);
+                strncpy(stateMachine[statesCount - 1].stateCommands[stateMachine[statesCount - 1].keywordCommandCount], command, STATE_MACHINE_MAX_COMMAND_LENGTH);
                 stateMachine[statesCount - 1].keywordCommandCount++;
-                strcpy(stateMachine[statesCount - 1].stateKeywords[stateMachine[statesCount - 1].keywordCommandCount - 1], keyword);
-                strcpy(stateMachine[statesCount - 1].stateCommands[stateMachine[statesCount - 1].keywordCommandCount - 1], command);
             }
-        }
+        }        
     }
 
     // debug
+    // printf("Number of states: %d\n", statesCount);
     // for (int i = 0; i < statesCount; i++) {
     //     printf("State %d: name: %s\n", i, stateMachine[i].stateName);
     //     for (int j = 0; j < stateMachine[i].keywordCommandCount; j++) {
@@ -390,7 +390,7 @@ int receive(char* pipeName, char* configFile, char* reusePipe) {
     }    
 
     threadData.stateMachine = stateMachine;
-    strcpy(threadData.pipeLocation, path);
+    strncpy(threadData.pipeLocation, path, COMMAND_INPUT_MAX_LENGTH);
     threadData.terminate = 0;
     threadData.currentState = 0;
     threadData.stateCount = statesCount;

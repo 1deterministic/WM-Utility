@@ -19,29 +19,29 @@ int alphaTransparency(char*, char*);
 // main
 int main(int argc, char** argv) {
     char* target = NULL;
-    char action[CLI_ACTION_MAX_LENGTH] = CLI_ACTION_HELP;
-    char value[CLI_NUMERICAL_VALUE_MAX_LENGTH] = CLI_NUMERICAL_DEFAULT;
-    char maximum[CLI_NUMERICAL_VALUE_MAX_LENGTH] = CLI_NUMERICAL_DEFAULT;
+    char action[CLI_PARAMETER_NAME_MAX_LENGHT] = CLI_ACTION_HELP;
+    char value[CLI_PARAMETER_VALUE_MAX_LENGHT] = CLI_NUMERICAL_DEFAULT;
+    char maximum[CLI_PARAMETER_VALUE_MAX_LENGHT] = CLI_NUMERICAL_DEFAULT;
 
     // get cli arguments to the right places
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], CLI_ACTION_HELP)) {
             target = NULL;
-            strcpy(action, CLI_ACTION_HELP);
+            strncpy(action, CLI_ACTION_HELP, CLI_PARAMETER_NAME_MAX_LENGHT);
             break;
         } else if (!strcmp(argv[i], CLI_ACTION_RGB_SHIFT)) {
             target = NULL;
-            strcpy(action, CLI_ACTION_RGB_SHIFT);
+            strncpy(action, CLI_ACTION_RGB_SHIFT, CLI_PARAMETER_NAME_MAX_LENGHT);
         } else if (!strcmp(argv[i], CLI_ACTION_ALPHA_TRANSPARENCY)) {
             target = NULL;
-            strcpy(action, CLI_ACTION_ALPHA_TRANSPARENCY);
+            strncpy(action, CLI_ACTION_ALPHA_TRANSPARENCY, CLI_PARAMETER_NAME_MAX_LENGHT);
         } else if (!strcmp(argv[i], CLI_VALUE_VALUE)) {
             target = value;
         } else if (!strcmp(argv[i], CLI_VALUE_MAXIMUM)) {
             target = maximum;
         } else {
             if (target != NULL) {
-                strcpy(target, argv[i]);
+                strncpy(target, argv[i], CLI_PARAMETER_VALUE_MAX_LENGHT);
             }
             target = NULL;
         }
