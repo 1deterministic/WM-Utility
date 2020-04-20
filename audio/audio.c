@@ -10,7 +10,6 @@
 #define NUMBER_OF_DEVICES 32
 #define STRING_SPLIT_SIZE 16
 #define DEVICE_NAME_MAX_LENGTH COMMAND_OUTPUT_MAX_LINE_LENGTH
-
 #define CLI_ACTION_HELP "--help"
 #define CLI_ACTION_INFO "--info"
 #define CLI_ACTION_GET_VOLUME_POLYBAR "--get-volume-polybar"
