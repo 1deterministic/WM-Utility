@@ -201,47 +201,38 @@ int receive(char* pipeName, char* configFile, char* reusePipe) {
                     // create a copy of the state change command (strtok_r will overwrite the original otherwise)
                     char stateChangeCommand[COMMAND_INPUT_MAX_LENGTH];
                     strncpy(stateChangeCommand, newCommand, COMMAND_INPUT_MAX_LENGTH);
+                    // split 'state' from its name
+                    for (char* name = NULL, * state = strtok_r(stateChangeCommand, " ", &name); state != NULL; state = strtok_r(NULL, " ", &name)) {
+                        if (strcmp(state, "") && strcmp(name, "")) {
+                            // printf("'%s' '%s'\n", state, name);
+                            // search for the new state by its name
+                            for (int i = 0; i < threadData->stateCount; i++) {
+                                if (!strcmp(name, threadData->stateMachine[i].stateName)) {
+                                    // update the current state to the new one
+                                    pthread_mutex_lock(&(threadData->currentStateLock));
+                                    threadData->currentState = i;
+                                    pthread_mutex_unlock(&(threadData->currentStateLock));
 
-                    // split 'state' from 'name' (blank space)
-                    char* stateWord = stateChangeCommand;
-                    char* stateName = stateWord;
-                    stateWord = strtok_r(stateName, " ", &stateName);
+                                    // search for the update command 
+                                    for (int j = 0; j < threadData->stateMachine[i].keywordCommandCount; j++) {
+                                        if (!strcmp(threadData->stateMachine[i].stateKeywords[j], "update")) {
+                                            // update the current command to the update command of the new state
+                                            pthread_mutex_lock(&(threadData->currentCommandLock));
+                                            threadData->currentCommand = threadData->stateMachine[i].stateCommands[j];
+                                            pthread_mutex_unlock(&(threadData->currentCommandLock));
 
-                    // for (char* lineRest = NULL, * line = strtok_r(stateName, "\n", &lineRest); line != NULL; line = strtok_r(NULL, "\n", &lineRest)) {
-                    //     if (strcmp(line, " ")) {
-                    //         printf("'%s' '%s'\n", line, lineRest);
-                    //         break;
-                    //     }
-                    // }
-
-                    // search for the new state only if the state isn't empty and doesn't start with a space character
-                    if (strcmp(stateName, "") && strncmp(" ", stateName, strlen(" "))) {
-                        // search for the new state by its name
-                        for (int i = 0; i < threadData->stateCount; i++) {
-                            if (!strcmp(stateName, threadData->stateMachine[i].stateName)) {
-                                // update the current state to the new one
-                                pthread_mutex_lock(&(threadData->currentStateLock));
-                                threadData->currentState = i;
-                                pthread_mutex_unlock(&(threadData->currentStateLock));
-
-                                // search for the update command 
-                                for (int j = 0; j < threadData->stateMachine[i].keywordCommandCount; j++) {
-                                    if (!strcmp(threadData->stateMachine[i].stateKeywords[j], "update")) {
-                                        // update the current command to the update command of the new state
-                                        pthread_mutex_lock(&(threadData->currentCommandLock));
-                                        threadData->currentCommand = threadData->stateMachine[i].stateCommands[j];
-                                        pthread_mutex_unlock(&(threadData->currentCommandLock));
-
-                                        // newCommand is storing a state change, this will replace it with the update command of the new state (for it to be executted below)
-                                        newCommand = threadData->stateMachine[i].stateCommands[j];
-                                        break;
+                                            // newCommand is storing a state change, this will replace it with the update command of the new state (for it to be executted below)
+                                            newCommand = threadData->stateMachine[i].stateCommands[j];
+                                            break;
+                                        }
                                     }
-                                }
 
-                                break;
+                                    break;
+                                }
                             }
+
+                            break;
                         }
-                        // if no update command was found, the current one will be used
                     }
                 }
 
@@ -338,12 +329,14 @@ int receive(char* pipeName, char* configFile, char* reusePipe) {
     readTextFile(configFile, file, FILE_OUTPUT_MAX_LENGTH);
     // for each line of the config file
     for (char* lineRest = NULL, * line = strtok_r(file, "\n", &lineRest); line != NULL; line = strtok_r(NULL, "\n", &lineRest)) {
+        printf("'%s'\n", line);
         // break the line in every space character
         for (char* wordRest = NULL, * word = strtok_r(line, " ", &wordRest); word != NULL; word = strtok_r(NULL, "\n", &wordRest)) {
             // if the word is not empty, consider the keyword:command pair found and stop searching
             if (strcmp(word, " ") && strcmp(wordRest, " ") && statesCount < STATE_MACHINE_MAX_STATE_COUNT) {
                 // if keyword is state, a new state is created
                 if (!strcmp(word, "state")) {
+                    strncpy(stateMachine[statesCount].stateName, wordRest, STATE_MACHINE_MAX_COMMAND_LENGTH);
                     stateMachine[statesCount].keywordCommandCount = 0;
                     statesCount++;
                 // else is a normal keyword, add a keyword:command pair if there is at least one state created and the number of keyword:command pairs of this state is within the maximum allowed
@@ -357,7 +350,7 @@ int receive(char* pipeName, char* configFile, char* reusePipe) {
             }
         }
     }
-
+    
     threadData.stateMachine = stateMachine;
     strncpy(threadData.pipeLocation, path, COMMAND_INPUT_MAX_LENGTH);
     threadData.terminate = 0;
