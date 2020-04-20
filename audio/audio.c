@@ -142,8 +142,8 @@ int main(int argc, char** argv) {
 
 // executes pacmd list-sinks and redirects its output to some char array
 int getPulseaudioState(AudioDevice* audioDevices, int* audioDevicesCount, int* defaultDeviceIndex) {
-    char output[COMMAND_OUTPUT_MAX_LENGTH] = "\0";
-    runCommand("pacmd list-sinks", output);
+    char output[COMMAND_OUTPUT_MAX_LENGTH];
+    runCommand("pacmd list-sinks", output, COMMAND_OUTPUT_MAX_LENGTH);
 
     // for each line of the command output
     for (char* lineRest = NULL, * line = strtok_r(output, "\n", &lineRest); line != NULL; line = strtok_r(NULL, "\n", &lineRest)) {
@@ -280,10 +280,10 @@ int getVolumePolybar(AudioDevice* audioDevices, int audioDevicesCount, int defau
     char underlineColor[CLI_PARAMETER_VALUE_MAX_LENGHT] = "#555555";
     if (!audioDevices[defaultDeviceIndex].deviceIsMuted) {
         // runs the command and store its output
-        char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
-        char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
+        char input[COMMAND_INPUT_MAX_LENGTH];
+        char output[COMMAND_OUTPUT_MAX_LENGTH];
         sprintf(input, "color --rgb-shift --value %d --maximum 100", audioDevices[defaultDeviceIndex].deviceVolume);
-        runCommand(input, output);
+        runCommand(input, output, COMMAND_OUTPUT_MAX_LENGTH);
 
         // removes the new line character from the end of the command output
         for (char* lineRest = NULL, * line = strtok_r(output, "\n", &lineRest); line != NULL; line = strtok_r(NULL, "\n", &lineRest)) {
@@ -305,10 +305,10 @@ int getNamePolybar(AudioDevice* audioDevices, int audioDevicesCount, int default
     char underlineColor[CLI_PARAMETER_VALUE_MAX_LENGHT] = "#555555";
     if (!audioDevices[defaultDeviceIndex].deviceIsMuted) {
         // runs the command and store its output
-        char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
-        char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
+        char input[COMMAND_INPUT_MAX_LENGTH];
+        char output[COMMAND_OUTPUT_MAX_LENGTH];
         sprintf(input, "color --rgb-shift --value %d --maximum 100", audioDevices[defaultDeviceIndex].deviceVolume);
-        runCommand(input, output);
+        runCommand(input, output, COMMAND_OUTPUT_MAX_LENGTH);
 
         // removes the new line character from the end of the command output
         for (char* lineRest = NULL, * line = strtok_r(output, "\n", &lineRest); line != NULL; line = strtok_r(NULL, "\n", &lineRest)) {
@@ -348,10 +348,10 @@ int setVolume(AudioDevice* audioDevices, int audioDevicesCount, int defaultDevic
     integerVolume = (integerVolume >= 0) ? integerVolume : 0;
 
     // runs the command and store its output
-    char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
-    char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
+    char input[COMMAND_INPUT_MAX_LENGTH];
+    char output[COMMAND_OUTPUT_MAX_LENGTH];
     sprintf(input, "pactl set-sink-volume %d %d%%", audioDevices[defaultDeviceIndex].deviceIndex, integerVolume);    
-    runCommand(input, output);
+    runCommand(input, output, COMMAND_OUTPUT_MAX_LENGTH);
 
     return 0;
 }
@@ -363,10 +363,10 @@ int increaseVolume(AudioDevice* audioDevices, int audioDevicesCount, int default
     newVolume = (newVolume >= 0) ? newVolume : 0;
 
     // runs the command and store its output
-    char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
-    char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
+    char input[COMMAND_INPUT_MAX_LENGTH];
+    char output[COMMAND_OUTPUT_MAX_LENGTH];
     sprintf(input, "pactl set-sink-volume %d %d%%", audioDevices[defaultDeviceIndex].deviceIndex, newVolume);
-    runCommand(input, output);
+    runCommand(input, output, COMMAND_OUTPUT_MAX_LENGTH);
 
     return 0;
 }
@@ -378,20 +378,20 @@ int decreaseVolume(AudioDevice* audioDevices, int audioDevicesCount, int default
     newVolume = (newVolume >= 0) ? newVolume : 0;
 
     // runs the command and store its output
-    char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
-    char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
+    char input[COMMAND_INPUT_MAX_LENGTH];
+    char output[COMMAND_OUTPUT_MAX_LENGTH];
     sprintf(input, "pactl set-sink-volume %d %d%%", audioDevices[defaultDeviceIndex].deviceIndex, newVolume);    
-    runCommand(input, output);
+    runCommand(input, output, COMMAND_OUTPUT_MAX_LENGTH);
 
     return 0;
 }
 
 int toggleMute(AudioDevice* audioDevices, int audioDevicesCount, int defaultDeviceIndex) {
     // runs the command and store its output
-    char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
-    char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
+    char input[COMMAND_INPUT_MAX_LENGTH];
+    char output[COMMAND_OUTPUT_MAX_LENGTH];
     sprintf(input, "pactl set-sink-mute %d %d%%", audioDevices[defaultDeviceIndex].deviceIndex, !(audioDevices[defaultDeviceIndex].deviceIsMuted));
-    runCommand(input, output);
+    runCommand(input, output, COMMAND_OUTPUT_MAX_LENGTH);
 
     return 0;
 }
@@ -401,10 +401,10 @@ int cicleDevices(AudioDevice* audioDevices, int audioDevicesCount, int defaultDe
     int nextDefaultDeviceIndex = (defaultDeviceIndex + 1) % audioDevicesCount;
 
     // runs the command and store its output
-    char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
-    char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
+    char input[COMMAND_INPUT_MAX_LENGTH];
+    char output[COMMAND_OUTPUT_MAX_LENGTH];
     sprintf(input, "pactl set-default-sink %d", audioDevices[nextDefaultDeviceIndex].deviceIndex);
-    runCommand(input, output);
+    runCommand(input, output, COMMAND_OUTPUT_MAX_LENGTH);
 
     return 0;
 }
@@ -424,10 +424,10 @@ int setDevice(AudioDevice* audioDevices, int audioDevicesCount, int defaultDevic
     integerDevice = (integerDevice >= 0) ? integerDevice : 0;
 
     // runs the command and store its output
-    char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
-    char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
+    char input[COMMAND_INPUT_MAX_LENGTH];
+    char output[COMMAND_OUTPUT_MAX_LENGTH];
     sprintf(input, "pacmd set-default-sink %d", audioDevices[integerDevice].deviceIndex);    
-    runCommand(input, output);
+    runCommand(input, output, COMMAND_OUTPUT_MAX_LENGTH);
 
     return 0;
 }

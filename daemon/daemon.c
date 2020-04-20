@@ -23,7 +23,7 @@
 
 typedef struct stateMachine StateMachine;
 struct stateMachine {
-    char stateName[CLI_ACTION_MAX_LENGTH];
+    char stateName[STATE_MACHINE_MAX_COMMAND_LENGTH];
     int keywordCommandCount;
     char stateKeywords[STATE_MACHINE_MAX_KEYWORD_COMMAND_COUNT][STATE_MACHINE_MAX_KEYWORD_LENGTH];
     char stateCommands[STATE_MACHINE_MAX_KEYWORD_COMMAND_COUNT][STATE_MACHINE_MAX_COMMAND_LENGTH];
@@ -143,23 +143,19 @@ int send(char* pipeName, char* message) {
 int receive(char* pipeName, char* configFile, char* reusePipe) {
     void* syncFunction(void* parameters) {
         ThreadData* threadData = (ThreadData*) parameters;
-        char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
-        char output[COMMAND_OUTPUT_MAX_LENGTH] = "\0";
+        char input[COMMAND_INPUT_MAX_LENGTH];
+        char output[COMMAND_OUTPUT_MAX_LENGTH];
         int terminate = 0;
 
         // sync update the interface
         while (!terminate) {
-            // reset contents of input to prevent being concatenated by strncpy
-            sprintf(input, "\0");
             // pulls the current command
             pthread_mutex_lock(&(threadData->currentCommandLock));
             strncpy(input, threadData->currentCommand, COMMAND_INPUT_MAX_LENGTH);
             pthread_mutex_unlock(&(threadData->currentCommandLock));
 
-            // reset contents of output to prevent being concatenated by readTextFile
-            sprintf(output, "\0");
             // runs the command received
-            runCommand(input, output);
+            runCommand(input, output, COMMAND_OUTPUT_MAX_LENGTH);
 
             // draw command output on the screen
             pthread_mutex_lock(&(threadData->screenLock));
@@ -181,19 +177,18 @@ int receive(char* pipeName, char* configFile, char* reusePipe) {
 
     void* asyncFunction(void* parameters) {
         ThreadData* threadData = (ThreadData*) parameters;
-        char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
-        char output[COMMAND_OUTPUT_MAX_LENGTH] = "\0";
+        char input[COMMAND_INPUT_MAX_LENGTH];
+        char output[COMMAND_OUTPUT_MAX_LENGTH];
+        char file[FILE_OUTPUT_MAX_LENGTH];
         int terminate = 0;
 
         while (!terminate) {
-            // read pipe contents (this will be on hold until something is sent to the pipe)
-            sprintf(output, "\0");
-            readTextFile(threadData->pipeLocation, output);
+            readTextFile(threadData->pipeLocation, file, FILE_OUTPUT_MAX_LENGTH);
 
             char* newCommand = NULL;
             // search for the command associated with the keyword received from the pipe in the current state
             for (int i = 0; i < threadData->stateMachine[threadData->currentState].keywordCommandCount; i++) {
-                if (!strcmp(output, threadData->stateMachine[threadData->currentState].stateKeywords[i])) {
+                if (!strcmp(file, threadData->stateMachine[threadData->currentState].stateKeywords[i])) {
                     newCommand = threadData->stateMachine[threadData->currentState].stateCommands[i];
                     break;
                 }
@@ -211,6 +206,13 @@ int receive(char* pipeName, char* configFile, char* reusePipe) {
                     char* stateWord = stateChangeCommand;
                     char* stateName = stateWord;
                     stateWord = strtok_r(stateName, " ", &stateName);
+
+                    // for (char* lineRest = NULL, * line = strtok_r(stateName, "\n", &lineRest); line != NULL; line = strtok_r(NULL, "\n", &lineRest)) {
+                    //     if (strcmp(line, " ")) {
+                    //         printf("'%s' '%s'\n", line, lineRest);
+                    //         break;
+                    //     }
+                    // }
 
                     // search for the new state only if the state isn't empty and doesn't start with a space character
                     if (strcmp(stateName, "") && strncmp(" ", stateName, strlen(" "))) {
@@ -254,22 +256,16 @@ int receive(char* pipeName, char* configFile, char* reusePipe) {
                     pthread_mutex_unlock(&(threadData->terminateLock));
                 // any other command
                 } else {
-                    // reset contents of output to prevent being concatenated by runCommand
-                    sprintf(output, "\0");
                     // execute the current command (won't show its output anywhere)
-                    runCommand(newCommand, output);
+                    runCommand(newCommand, output, COMMAND_OUTPUT_MAX_LENGTH);
 
-                    // reset contents of output to prevent being concatenated by runCommand
-                    sprintf(input, "\0");
                     // pulls the current command
                     pthread_mutex_lock(&(threadData->currentCommandLock));
                     strncpy(input, threadData->currentCommand, COMMAND_INPUT_MAX_LENGTH);
                     pthread_mutex_unlock(&(threadData->currentCommandLock));
 
-                    // reset contents of output to prevent being concatenated by runCommand
-                    sprintf(output, "\0");
                     // execute the update command (to reflect immediately any changes that newCommand may have done)
-                    runCommand(input, output);
+                    runCommand(input, output, COMMAND_OUTPUT_MAX_LENGTH);
 
                     // draw output on screen
                     pthread_mutex_lock(&(threadData->screenLock));
@@ -317,63 +313,13 @@ int receive(char* pipeName, char* configFile, char* reusePipe) {
     ThreadData threadData;
     pthread_t syncThread;
     pthread_t asyncThread;
-    char input[COMMAND_INPUT_MAX_LENGTH] = "\0";
-    char output[COMMAND_OUTPUT_MAX_LINE_LENGTH] = "\0";
-
-    // load state machine from config file
-    readTextFile(configFile, output);
-
-    // decode config file line by line
-    // char* line = output;
-    // char* nextLine = line;
-
-    // for each line of the config file
-    for (char* lineRest = NULL, * line = strtok_r(output, "\n", &lineRest); line != NULL; line = strtok_r(NULL, "\n", &lineRest)) {
-        printf("'%s'\n", line);
-
-        char* keyword = NULL;
-        char* command = NULL;
-
-        // break the line in every space character
-        for (char* wordRest = NULL, * word = strtok_r(line, " ", &wordRest); word != NULL; word = strtok_r(NULL, "\n", &wordRest)) {
-            // if the word is not empty, consider the keyword:command pair found and stop searching
-            if (strcmp(word, "")) {
-                keyword = word;
-                command = wordRest;
-                break;
-            }
-        }
-
-        // if a keyword:command pair was found and the number of states is within the maximum allowed
-        if (keyword != NULL && command != NULL && statesCount < STATE_MACHINE_MAX_STATE_COUNT) {
-            // if keyword is state, a new state is created
-            if (!strcmp(keyword, "state")) {
-                strncpy(stateMachine[statesCount].stateName, command, (strlen(command) < CLI_ACTION_MAX_LENGTH - 1) ? strlen(command) : CLI_ACTION_MAX_LENGTH - 1);
-                statesCount++;
-            // else is a normal keyword, add a keyword:command pair if there is at least one state created and the number of keyword:command pairs of this state is within the maximum allowed
-            } else if (statesCount > 0 && stateMachine[statesCount - 1].keywordCommandCount < STATE_MACHINE_MAX_STATE_COUNT) {
-                strncpy(stateMachine[statesCount - 1].stateKeywords[stateMachine[statesCount - 1].keywordCommandCount], keyword, STATE_MACHINE_MAX_KEYWORD_LENGTH);
-                strncpy(stateMachine[statesCount - 1].stateCommands[stateMachine[statesCount - 1].keywordCommandCount], command, STATE_MACHINE_MAX_COMMAND_LENGTH);
-                stateMachine[statesCount - 1].keywordCommandCount++;
-            }
-        }        
-    }
-
-    // debug
-    // printf("Number of states: %d\n", statesCount);
-    // for (int i = 0; i < statesCount; i++) {
-    //     printf("State %d: name: %s\n", i, stateMachine[i].stateName);
-    //     for (int j = 0; j < stateMachine[i].keywordCommandCount; j++) {
-    //         printf("'%s' executes '%s'\n", stateMachine[i].stateKeywords[j], stateMachine[i].stateCommands[j]);
-    //     }
-    // }
-    // return 0;
-
-    // resolves the path where the pipe will be created
-    char path[COMMAND_INPUT_MAX_LENGTH] = "\0";    
-    sprintf(path, PIPE_LOCATION, getuid(), pipeName);
+    char input[COMMAND_INPUT_MAX_LENGTH];
+    char output[COMMAND_OUTPUT_MAX_LENGTH];
+    char file[FILE_OUTPUT_MAX_LENGTH];
+    char path[COMMAND_INPUT_MAX_LENGTH];
 
     // if reusePipe is different than yes, prevent using an existing pipe
+    sprintf(path, PIPE_LOCATION, getuid(), pipeName);
     if (strcmp(reusePipe, "yes")) {
         if (fileExists(path)) {
             printf("The pipe %s is already being used! Please, use another name or, if you want to reuse it, add the cli option %s yes.\n", pipeName, CLI_VALUE_REUSE_PIPE);
@@ -384,10 +330,33 @@ int receive(char* pipeName, char* configFile, char* reusePipe) {
 
     // create pipe
     if (!fileExists(path)) {
-        sprintf(input, "\0");
         sprintf(input, "mkfifo %s", path);
-        runCommand(input, output);
-    }    
+        runCommand(input, output, COMMAND_OUTPUT_MAX_LENGTH);
+    }
+
+    // load state machine from config file
+    readTextFile(configFile, file, FILE_OUTPUT_MAX_LENGTH);
+    // for each line of the config file
+    for (char* lineRest = NULL, * line = strtok_r(file, "\n", &lineRest); line != NULL; line = strtok_r(NULL, "\n", &lineRest)) {
+        // break the line in every space character
+        for (char* wordRest = NULL, * word = strtok_r(line, " ", &wordRest); word != NULL; word = strtok_r(NULL, "\n", &wordRest)) {
+            // if the word is not empty, consider the keyword:command pair found and stop searching
+            if (strcmp(word, " ") && strcmp(wordRest, " ") && statesCount < STATE_MACHINE_MAX_STATE_COUNT) {
+                // if keyword is state, a new state is created
+                if (!strcmp(word, "state")) {
+                    stateMachine[statesCount].keywordCommandCount = 0;
+                    statesCount++;
+                // else is a normal keyword, add a keyword:command pair if there is at least one state created and the number of keyword:command pairs of this state is within the maximum allowed
+                } else if (statesCount > 0 && stateMachine[statesCount - 1].keywordCommandCount < STATE_MACHINE_MAX_STATE_COUNT) {
+                    strncpy(stateMachine[statesCount - 1].stateKeywords[stateMachine[statesCount - 1].keywordCommandCount], word, STATE_MACHINE_MAX_KEYWORD_LENGTH);
+                    strncpy(stateMachine[statesCount - 1].stateCommands[stateMachine[statesCount - 1].keywordCommandCount], wordRest, STATE_MACHINE_MAX_COMMAND_LENGTH);
+                    stateMachine[statesCount - 1].keywordCommandCount++;
+                }     
+
+                break;
+            }
+        }
+    }
 
     threadData.stateMachine = stateMachine;
     strncpy(threadData.pipeLocation, path, COMMAND_INPUT_MAX_LENGTH);
@@ -411,23 +380,35 @@ int receive(char* pipeName, char* configFile, char* reusePipe) {
 
     // initialize locks
     if (pthread_mutex_init(&(threadData.screenLock), NULL)) {
+        printf("Could not create screen mutex lock!\n");
+        fflush(stdout);
         return 1;
     }
     if (pthread_mutex_init(&(threadData.terminateLock), NULL)) {
+        printf("Could not create terminate mutex lock!\n");
+        fflush(stdout);
         return 1;
     }
     if (pthread_mutex_init(&(threadData.currentStateLock), NULL)) {
+        printf("Could not create current state mutex lock!\n");
+        fflush(stdout);
         return 1;
     }
     if (pthread_mutex_init(&(threadData.currentCommandLock), NULL)) {
+        printf("Could not create currentCommand mutex lock!\n");
+        fflush(stdout);
         return 1;
     }
 
     // initialize threads
     if (pthread_create(&syncThread, NULL, syncFunction, &threadData)) {
+        printf("Could not start sync thread!\n");
+        fflush(stdout);
         return 1;
     }
     if (pthread_create(&asyncThread, NULL, asyncFunction, &threadData)) {
+        printf("Could not start async thread!\n");
+        fflush(stdout);
         return 1;
     }
 
@@ -442,10 +423,8 @@ int receive(char* pipeName, char* configFile, char* reusePipe) {
     pthread_mutex_destroy(&(threadData.currentCommandLock));
 
     // remove pipe
-    sprintf(input, "\0");
     sprintf(input, "rm %s", path);
-    sprintf(output, "\0");
-    runCommand(input, output);
+    runCommand(input, output, COMMAND_OUTPUT_MAX_LENGTH);
 
     return 0;
 }
