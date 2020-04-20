@@ -2,82 +2,119 @@
 
 # start with 'daemon --receive --pipe-name menu --config-file menu.txt --reuse-pipe yes'
 
-state internet
-update echo "Internet"
-confirm state internet.firefox
-return state internet
-up state office
-down state media
+state menu
+update echo "[%{u#555555}Menu]"
+confirm state menu.utility
+return state menu
+reset state menu
+up state menu
+down state menu
 kill terminate
 
-    state internet.firefox
-    update echo "Firefox"
-    confirm firefox &>/dev/null & daemon --send --pipe-name menu --message return &>/dev/null &
-    return state internet
-    up state internet.chromium
-    down state internet.chromium
+    state menu.utility
+    update echo "[%{u#555555}Menu][%{u#00aa55}Utility]"
+    confirm state menu.utility.thunar
+    return state menu
+    reset state menu
+    up state menu.office
+    down state menu.internet
     kill terminate
 
-    state internet.chromium
-    update echo "Chromium"
-    confirm chromium &>/dev/null & daemon --send --pipe-name menu --message return &>/dev/null &
-    return state internet
-    up state internet.firefox
-    down state internet.firefox
+        state menu.utility.thunar
+        update echo "[%{u#555555}Menu][%{u#00aa55}Utility][%{u#ffffff}Thunar]"
+        confirm thunar &>/dev/null & daemon --send --pipe-name menu --message reset &>/dev/null &
+        return state menu.utility
+        reset state menu
+        up state menu.utility.thunar
+        down state menu.utility.thunar
+        kill terminate
+
+    state menu.internet
+    update echo "[%{u#555555}Menu][%{u#ffff00}Internet]"
+    confirm state menu.internet.firefox
+    return state menu
+    reset state menu
+    up state menu.utility
+    down state menu.media
     kill terminate
 
-state media
-update echo "Media"
-confirm state media.vlc
-return state media
-up state internet
-down state office
-kill terminate
+        state menu.internet.firefox
+        update echo "[%{u#555555}Menu][%{u#ffff00}Internet][%{u#ffaa00}Firefox]"
+        confirm firefox &>/dev/null & daemon --send --pipe-name menu --message reset &>/dev/null &
+        return state menu.internet
+        reset state menu
+        up state menu.internet.chromium
+        down state menu.internet.chromium
+        kill terminate
 
-    state media.vlc
-    update echo "VLC"
-    confirm vlc &>/dev/null & daemon --send --pipe-name menu --message return &>/dev/null &
-    return state media
-    up state media.pavucontrol
-    down state media.pavucontrol
+        state menu.internet.chromium
+        update echo "[%{u#555555}Menu][%{u#ffff00}Internet][%{u#55aaff}Chromium]"
+        confirm chromium &>/dev/null & daemon --send --pipe-name menu --message reset &>/dev/null &
+        return state menu.internet
+        reset state menu
+        up state menu.internet.firefox
+        down state menu.internet.firefox
+        kill terminate
+
+    state menu.media
+    update echo "[%{u#555555}Menu][%{u#55ff55}Media]"
+    confirm state menu.media.vlc
+    return state menu
+    reset state menu
+    up state menu.internet
+    down state menu.office
     kill terminate
 
-    state media.pavucontrol
-    update echo "Pulseaudio Volume Control"
-    confirm pavucontrol &>/dev/null & daemon --send --pipe-name menu --message return &>/dev/null &
-    return state media
-    up state media.vlc
-    down state media.vlc
+        state menu.media.vlc
+        update echo "[%{u#555555}Menu][%{u#55ff55}Media][%{u#ffaa00}VLC]"
+        confirm vlc &>/dev/null & daemon --send --pipe-name menu --message reset &>/dev/null &
+        return state menu.media
+        reset state menu
+        up state menu.media.pavucontrol
+        down state menu.media.pavucontrol
+        kill terminate
+
+        state menu.media.pavucontrol
+        update echo "[%{u#555555}Menu][%{u#55ff55}Media][%{u#00aa00}Pulseaudio Control]"
+        confirm pavucontrol &>/dev/null & daemon --send --pipe-name menu --message reset &>/dev/null &
+        return state menu.media
+        reset state menu
+        up state menu.media.vlc
+        down state menu.media.vlc
+        kill terminate
+
+    state menu.office
+    update echo "[%{u#555555}Menu][%{u#ffaa55}Office]"
+    confirm state menu.office.libreoffice-writter
+    return state menu
+    reset state menu
+    up state menu.media
+    down state menu.utility
     kill terminate
 
-state office
-update echo "Office"
-confirm state office.libreoffice-writter
-return state media
-up state media
-down state internet
-kill terminate
+        state menu.office.libreoffice-writter
+        update echo "[%{u#555555}Menu][%{u#ffaa55}Office][%{u#0000ff}LibreOffice Writter]"
+        confirm libreoffice --writer &>/dev/null & daemon --send --pipe-name menu --message reset &>/dev/null &
+        return state menu.office
+        reset state menu
+        up state menu.office.libreoffice-impress
+        down state menu.office.libreoffice-calc
+        kill terminate
 
-    state office.libreoffice-writter
-    update echo "LibreOffice Writter"
-    confirm libreoffice --writer &>/dev/null & daemon --send --pipe-name menu --message return &>/dev/null &
-    return state office
-    up state office.libreoffice-impress
-    down state office.libreoffice-calc
-    kill terminate
+        state menu.office.libreoffice-calc
+        update echo "[%{u#555555}Menu][%{u#ffaa55}Office][%{u#00ff00}LibreOffice Calc]"
+        confirm libreoffice --calc &>/dev/null & daemon --send --pipe-name menu --message reset &>/dev/null &
+        return state menu.office
+        reset state menu
+        up state menu.office.libreoffice-writter
+        down state menu.office.libreoffice-impress
+        kill terminate
 
-    state office.libreoffice-calc
-    update echo "LibreOffice Calc"
-    confirm libreoffice --calc &>/dev/null & daemon --send --pipe-name menu --message return &>/dev/null &
-    return state office
-    up state office.libreoffice-writter
-    down state office.libreoffice-impress
-    kill terminate
-
-    state office.libreoffice-impress
-    update echo "LibreOffice Impress"
-    confirm libreoffice --impress &>/dev/null & daemon --send --pipe-name menu --message return &>/dev/null &
-    return state office
-    up state office.libreoffice-calc
-    down state office.libreoffice-writter
-    kill terminate
+        state menu.office.libreoffice-impress
+        update echo "[%{u#555555}Menu][%{u#ffaa55}Office][%{u#ffff00}LibreOffice Impress]"
+        confirm libreoffice --impress &>/dev/null & daemon --send --pipe-name menu --message reset &>/dev/null &
+        return state menu.office
+        reset state menu
+        up state menu.office.libreoffice-calc
+        down state menu.office.libreoffice-writter
+        kill terminate
